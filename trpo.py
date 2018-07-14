@@ -19,8 +19,6 @@ def fisher_vector_product(get_kl,v,model):
     return flat_grad_grad_kl
 
 
-
-
 class TRPO(object):
     """
     TRPO
