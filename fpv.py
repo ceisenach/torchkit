@@ -62,6 +62,33 @@ def gather_jacobian(param_list,d):
     pass
 
 
+class Jtanh(object):
+    @staticmethod
+    def _compute_jacobian(out_grad,input):
+        x = input.data if isinstance(input,JTensor) else input
+        assert x.dim() == 2, "Wrong dimensions"
+        sech2_x = 1. - (x.tanh())**2
+        sech2_x_expanded = sech2_x.unsqueeze(1).repeat(1,out_grad.shape[1],1)
+        assert sech2_x_expanded.shape == out_grad.shape, "shape needs to be same"
+        in_grad = out_grad * sech2_x_expanded
+
+        # continue down graph
+        if isinstance(input,JTensor):
+            input.jacobian(in_grad)
+        else:
+            print('JTANH - Compute graph leaf')
+
+
+
+def tanh(input,save_for_jacobian=False):
+    x = input.data if isinstance(input,JTensor) else input
+    if not save_for_jacobian:
+        return x.tanh()
+
+    out = x.tanh()
+    return JTensor(out,Jtanh,input)
+
+
 class JLinear(nn.Module):
     r"""Applies a linear transformation to the incoming data: :math:`y = Ax + b`
 
@@ -124,7 +151,6 @@ class JLinear(nn.Module):
     # Output of layer has shape N x L_1
     # input X has shape N x L_2
     # out_grad should have shape N x d x L_1
-
     def _compute_jacobian(self,out_grad,input):
         # STEP 0 - do dimensionality check, process input
         x = input.data if isinstance(input,JTensor) else input
@@ -190,7 +216,19 @@ class JLinear(nn.Module):
 #         raise RuntimeError('Save for backward not requested')
 
 
-a = JLinear(10,10)
+class SimpleNet(nn.Module):
+    def __init__(self):
+        super(SimpleNet, self).__init__()
+        self.affine = JLinear(10,10)
+
+    def forward(self,x,save_for_jacobian=False):
+        x = self.affine(x,save_for_jacobian)
+        out = tanh(x,save_for_jacobian)
+        return out
+
+
+# a = JLinear(10,10)
+a = SimpleNet()
 # for p in a.parameters():
 #     print(p)
 
