@@ -1,6 +1,5 @@
 # local
 out/
-test_*
 *.tar.gz
 *.pt
 *.npy
