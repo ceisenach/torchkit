@@ -54,7 +54,7 @@ class Linear(Module):
     # Output of layer has shape N x L_1
     # input X has shape N x L_2
     # out_grad should have shape N x d x L_1
-    def _compute_jacobian(self,out_grad,input):
+    def _compute_jacobian(self,out_grad,input,mode):
         o,I = input.data if isinstance(input,JTensor) else input, out_grad
         # STEP 0 - do dimensionality check, process input
         N,d = I.shape[0],I.shape[1]
@@ -66,17 +66,17 @@ class Linear(Module):
         # Note - technically this should be o^T \otimes I, but python is row-major
         # see main.tex for more details.
         I_oT = util.bkron(I,o.unsqueeze(1)) # jacobian of output wrt W
-        self.weight.update_jacobian_(I_oT)
+        self.weight.update_jacobian_(I_oT,mode)
 
         # bias jacobian
         if self.bias is not None:
-            self.bias.update_jacobian_(I)
+            self.bias.update_jacobian_(I,mode)
 
 
         # STEP 2 - compute in_grad call jacobian on inputs
         in_grad = torch.matmul(I,self.weight.data)
         if isinstance(input,JTensor):
-            input.jacobian(in_grad)
+            input.jacobian(in_grad,mode)
         else:
             logger.debug('Compute graph leaf')
 

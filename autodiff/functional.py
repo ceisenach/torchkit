@@ -8,7 +8,7 @@ __all__ = ['tanh']
 
 class Jtanh(object):
     @staticmethod
-    def _compute_jacobian(out_grad,input):
+    def _compute_jacobian(out_grad,input,mode):
         x = input.data if isinstance(input,JTensor) else input
         assert x.dim() == 2, "Wrong dimensions"
         sech2_x = 1. - (x.tanh())**2
@@ -18,7 +18,7 @@ class Jtanh(object):
 
         # continue down graph
         if isinstance(input,JTensor):
-            input.jacobian(in_grad)
+            input.jacobian(in_grad,mode)
         else:
             logger.debug('Compute graph leaf')
 

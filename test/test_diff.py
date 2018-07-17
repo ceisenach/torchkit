@@ -70,18 +70,17 @@ class TestAutoDiff(ExtendedTestCase):
     def test_autodiff_batch(self):
         net = DeepNet([10,16,14,25,8])
         data = torch.randn(7,10)
-        j_g,j_N = self._get_both_jacobians(net,8,data,batch=True)
+        j_g,j_N = self._get_both_jacobians(net,8,data,mode='batch')
         j = torch.sum(j_N,dim=0)
         self.assertTensorClose(j_g.view(-1),j.view(-1))
 
 
-    def _get_both_jacobians(self,net,out_dim,data,batch=False):
+    def _get_both_jacobians(self,net,out_dim,data,mode='sum'):
         grads = []
-        N = data.shape[0] if batch else None
-        ad.util.zero_jacobian(net.parameters(),out_dim,N)
+        ad.util.zero_jacobian(net.parameters())
         net_out = net(data,save_for_jacobian=True)
         # Jacobian
-        net_out.jacobian()
+        net_out.jacobian(mode=mode)
         j = ad.util.gather_jacobian(net.parameters())
 
         # Grads
@@ -98,13 +97,13 @@ class TestAutoDiff(ExtendedTestCase):
 
 
     def _get_grad_jacobian(self,net,out_dim,data,loss_fn):
-        ad.util.zero_jacobian(net.parameters(),out_dim)
+        ad.util.zero_jacobian(net.parameters())
         ad.util.zero_grad(net.parameters())
         net_out = net(data,save_for_jacobian=True)
         loss = loss_fn(net_out.data)
   
         # Jacobian
-        net_out.jacobian()
+        net_out.jacobian(mode='sum')
         j = ad.util.gather_jacobian(net.parameters())
 
         # Grad

@@ -4,9 +4,9 @@ import torch
 ##########################################################
 ### Utility Functions
 ##########################################################
-def zero_jacobian(param_list,d,N=None):
+def zero_jacobian(param_list):
     for p in param_list:
-        p.zero_jacobian_(d,N)
+        p.zero_jacobian_()
 
 def zero_grad(param_list):
     for p in param_list:
@@ -19,7 +19,10 @@ def gather_jacobian(param_list):
     pjs = []
     for p in param_list:
         pj = p.jacobian
-        pjs.append(pj)
+        if pj is not None:
+            pjs.append(pj)
+        else:
+            print('None jacobian')
 
     jacobian = torch.cat(pjs,dim=-1)
     return jacobian
