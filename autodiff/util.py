@@ -8,6 +8,13 @@ def zero_jacobian(param_list,d):
     for p in param_list:
         p.zero_jacobian_(d)
 
+def zero_grad(param_list):
+    for p in param_list:
+        if p.grad is not None:
+            p.grad.detach_()
+            p.grad.zero_()
+
+
 def gather_jacobian(param_list):
     pjs = []
     for p in param_list:
@@ -16,6 +23,7 @@ def gather_jacobian(param_list):
 
     jacobian = torch.cat(pjs,dim=1)
     return jacobian
+
 
 def gather_grad(param_list):
     pgs = []
@@ -26,11 +34,13 @@ def gather_grad(param_list):
     grad = torch.cat(pgs,dim=0)
     return grad
 
+
 def flat_dim(shape):
     fd = 1
     for di in list(shape):
         fd *= di
     return fd
+
 
 # computes batch A \otimes B
 # A is N x n x m matrix, B is N x p x q

@@ -53,13 +53,22 @@ class Linear(nn.Module):
         assert I.shape[2] == self.out_features, "Bad out_grad"
         assert N == o.shape[0], "N dim mismatch"
         assert o.dim() == 2, "Inputs must be vectorized"
-        oT_I = util.bkron(o.unsqueeze(1),I) # jacobian of output wrt W
+        # Note - technically this should be o^T \otimes I, but that is because
+        # differential calc usually is done with column major vectorization,
+        # but python uses row major. See main.tex for more details.
+        I_oT = util.bkron(I,o.unsqueeze(1)) # jacobian of output wrt W
 
-        D_W = torch.sum(oT_I,dim=0)
+        D_W = torch.sum(I_oT,dim=0)
+        if self.weight.jacobian is None:
+            print('Zero Jacobian in deriv')
+            self.weight.jacobian.zero_jacobian_(d)
         self.weight.jacobian += D_W
 
         # bias jacobian
         if self.bias is not None:
+            if self.bias.jacobian is None:
+                print('Zero Jacobian in deriv')
+                self.bias.jacobian.zero_jacobian_(d)
             D_b = torch.sum(I,dim=0)
             self.bias.jacobian += D_b
 

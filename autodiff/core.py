@@ -26,8 +26,11 @@ class JParameter(nn.Parameter):
         return 'JParameter containing:\n' + super(JParameter, self).__repr__()
 
     def zero_jacobian_(self,d):
-        jacobian_shape = (d,self.size_flat)
-        self.jacobian = torch.zeros(jacobian_shape)
+        if self.jacobian is not None and self.jacobian.shape[0] == d:
+            self.jacobian.zero_()
+        else:
+            jacobian_shape = (d,self.size_flat)
+            self.jacobian = torch.zeros(jacobian_shape)
 
 
 class JTensor(object):
