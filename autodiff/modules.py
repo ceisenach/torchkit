@@ -8,8 +8,14 @@ logger = logging.getLogger(__name__)
 from . import JTensor, JParameter
 from . import util as util
 
+class Module(nn.Module):
 
-class Linear(nn.Module):
+    def _compute_jacobian(self,out_grad,input):
+        raise NotImplementedError()
+
+
+
+class Linear(Module):
     r"""See nn.Linear"""
 
     def __init__(self, in_features, out_features, bias=True):

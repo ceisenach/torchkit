@@ -6,6 +6,7 @@ out/
 *.log
 *.pdf
 *.json
+experiment.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -1,21 +1,22 @@
 import torch
-import torch.nn as nn
 import numpy as np
 
 import autodiff as ad
+import autodiff.modules as nn
+import autodiff.functional as F
 from . import ExtendedTestCase
 
 class SimpleNet(nn.Module):
     def __init__(self, sizes = [2,2,2]):
         super(SimpleNet, self).__init__()
-        self.affine1 = ad.modules.Linear(sizes[0],sizes[1])
-        self.affine2 = ad.modules.Linear(sizes[1],sizes[2])
+        self.affine1 = nn.Linear(sizes[0],sizes[1])
+        self.affine2 = nn.Linear(sizes[1],sizes[2])
 
     def forward(self,x,save_for_jacobian=False):
         x = self.affine1(x,save_for_jacobian)
-        x = ad.functional.tanh(x,save_for_jacobian)
+        x = F.tanh(x,save_for_jacobian)
         x = self.affine2(x,save_for_jacobian)
-        x = ad.functional.tanh(x,save_for_jacobian)
+        x = F.tanh(x,save_for_jacobian)
         return x
 
 class DeepNet(nn.Module):
@@ -28,13 +29,13 @@ class DeepNet(nn.Module):
 
     def forward(self,x,save_for_jacobian=False):
         x = self.affine1(x,save_for_jacobian)
-        x = ad.functional.tanh(x,save_for_jacobian)
+        x = F.tanh(x,save_for_jacobian)
         x = self.affine2(x,save_for_jacobian)
-        x = ad.functional.tanh(x,save_for_jacobian)
+        x = F.tanh(x,save_for_jacobian)
         x = self.affine3(x,save_for_jacobian)
-        x = ad.functional.tanh(x,save_for_jacobian)
+        x = F.tanh(x,save_for_jacobian)
         x = self.affine4(x,save_for_jacobian)
-        x = ad.functional.tanh(x,save_for_jacobian)
+        x = F.tanh(x,save_for_jacobian)
         return x
 
 

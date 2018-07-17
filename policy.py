@@ -85,11 +85,14 @@ class GaussianPolicy(BasePolicy):
 
 
     def fisher_information(self,states,batch_approx=False):
+        assert states.dim() == 2, "States should be 2D"
         if batch_approx is True:
             raise RuntimeError('Not implemented yet')
 
-        # Step 1 -- get Jacobian
+        N = states.shape[0]
 
+        # Step 1 -- get Jacobian
+        
 
         # Step 2 -- pre-compute products
 
