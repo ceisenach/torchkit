@@ -21,7 +21,7 @@ def gather_grad(param_list):
     pgs = []
     for p in param_list:
         pg = p.grad
-        pgs.append(pg.view(-1,1))
+        pgs.append(pg.view(-1))
 
     grad = torch.cat(pgs,dim=0)
     return grad
