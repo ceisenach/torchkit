@@ -5,10 +5,38 @@ import torch.autograd as autograd
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-import pdb
+import logging
+logger = logging.getLogger(__name__)
 
 import torch
 
+
+##########################################################
+### Utility Functions
+##########################################################
+def zero_jacobian(param_list,d):
+    for p in param_list:
+        p._zero_jacobian(d)
+
+def gather_jacobian(param_list):
+    # determine size to allocate
+    pjs = []
+    for p in param_list:
+        pj = p.jacobian
+        pjs.append(pj)
+
+    jacobian = torch.cat(pjs,dim=1)
+    return jacobian
+
+def flat_dim(shape):
+    fd = 1
+    for di in list(shape):
+        fd *= di
+    return fd
+
+##########################################################
+### Auto-Jacobian
+##########################################################
 class JParameter(nn.Parameter):
     r"""Special type of Parameter to compute Jacobian"""
     def __new__(cls, data=None, requires_grad=True):
@@ -18,11 +46,7 @@ class JParameter(nn.Parameter):
 
     def __init__(self,**kwargs):
         self.jacobian = None
-        flat_dim = 1
-        for di in list(self.data.shape):
-            flat_dim *= di
-        print(flat_dim)
-        self._size_flat = flat_dim
+        self._size_flat = flat_dim(self.data.shape)
 
     @property
     def size_flat(self):
@@ -54,14 +78,6 @@ class JTensor(object):
         self._creator._compute_jacobian(in_grad,self._jacobian_info)
 
 
-def zero_jacobian(param_list,d):
-    for p in param_list:
-        p._zero_jacobian(d)
-
-def gather_jacobian(param_list,d):
-    pass
-
-
 class Jtanh(object):
     @staticmethod
     def _compute_jacobian(out_grad,input):
@@ -76,7 +92,7 @@ class Jtanh(object):
         if isinstance(input,JTensor):
             input.jacobian(in_grad)
         else:
-            print('JTANH - Compute graph leaf')
+            logger.debug('Compute graph leaf')
 
 
 
@@ -90,34 +106,9 @@ def tanh(input,save_for_jacobian=False):
 
 
 class JLinear(nn.Module):
-    r"""Applies a linear transformation to the incoming data: :math:`y = Ax + b`
+    r"""See nn.Linear"""
 
-    Args:
-        in_features: size of each input sample
-        out_features: size of each output sample
-        bias: If set to False, the layer will not learn an additive bias.
-            Default: ``True``
-
-    Shape:
-        - Input: :math:`(N, *, in\_features)` where :math:`*` means any number of
-          additional dimensions
-        - Output: :math:`(N, *, out\_features)` where all but the last dimension
-          are the same shape as the input.
-
-    Attributes:
-        weight: the learnable weights of the module of shape
-            `(out_features x in_features)`
-        bias:   the learnable bias of the module of shape `(out_features)`
-
-    Examples::
-
-        >>> m = nn.Linear(20, 30)
-        >>> input = torch.randn(128, 20)
-        >>> output = m(input)
-        >>> print(output.size())
-    """
-
-    def __init__(self, in_features, out_features, bias=False):
+    def __init__(self, in_features, out_features, bias=True):
         super(JLinear, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
@@ -160,7 +151,7 @@ class JLinear(nn.Module):
         assert x.dim() == 2, "Inputs must be vectorized"
 
         # STEP 1 - do something to update jacobian of params
-        # so far, only does it for weights
+        # weight jacobian
         out_grad_tiled = out_grad.repeat(1,1,self.in_features) # N x d x L_1L_2
         x_expanded = x.unsqueeze(1).repeat(1,d,1) # N x d x L_2
         x_expanded2 = x_expanded.unsqueeze(3)
@@ -170,76 +161,42 @@ class JLinear(nn.Module):
         assert out_grad_tiled.size() == x_expanded4.size()
 
         jacobian_weights = torch.sum((out_grad_tiled * x_expanded4),dim=0)
-        # import pdb; pdb.set_trace()
         self.weight.jacobian += jacobian_weights
 
+        # bias jacobian
+        if self.bias is not None:
+            self.bias.jacobian += torch.sum(out_grad,dim=0)
+
         # STEP 2 - compute in_grad call jacobian on inputs
-        # import pdb; pdb.set_trace()
         in_grad = torch.matmul(out_grad,self.weight.data)
         if isinstance(input,JTensor):
             input.jacobian(in_grad)
         else:
-            print('Compute graph leaf')
-
-
-# class Policy(nn.Module):
-#     def __init__(self, num_inputs, num_outputs):
-#         super(Policy, self).__init__()
-#         self.affine1 = nn.Linear(num_inputs, 10)
-#         self.affine2 = nn.Linear(10, num_outputs)
-#         self.affine2.weight.data.mul_(0.1)
-#         self.affine2.bias.data.mul_(0.0)
-        
-#         self._saved_for_jacobian = False
-#         self._saved_res = None
-
-
-#     def forward(self, x,save_for_jacobian=False):
-#         # saved results
-#         O = [] 
-
-
-
-#         o1 = F.tanh(self.affine1(x))
-#         affine2 = self.affine2(x)
-
-
-
-
-#         return affine2
-
-
-#     def jacobian(self):
-#         if self._saved_for_jacobian:
-#             # do something
-#             return
-#         raise RuntimeError('Save for backward not requested')
+            logger.debug('Compute graph leaf')
 
 
 class SimpleNet(nn.Module):
     def __init__(self):
         super(SimpleNet, self).__init__()
-        self.affine = JLinear(10,10)
+        self.affine1 = JLinear(2,2)
+        self.affine2 = JLinear(2,2)
+
 
     def forward(self,x,save_for_jacobian=False):
-        x = self.affine(x,save_for_jacobian)
-        out = tanh(x,save_for_jacobian)
-        return out
+        x = self.affine1(x,save_for_jacobian)
+        x = tanh(x,save_for_jacobian)
+        x = self.affine2(x,save_for_jacobian)
+        x = tanh(x,save_for_jacobian)
+        return x
 
-
-# a = JLinear(10,10)
-a = SimpleNet()
-# for p in a.parameters():
-#     print(p)
-
-data = torch.ones(10,10)
-
-out = a(data,save_for_jacobian=True)
-zero_jacobian(a.parameters(),data.shape[1])
-print(out)
-out.jacobian()
-
-
-# print(a.jacobian)
-# a._zero_jacobian(4)
-# print(a.jacobian)
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+    a = SimpleNet()
+    data = torch.ones(4,2)
+    out = a(data,save_for_jacobian=True)
+    zero_jacobian(a.parameters(),data.shape[1])
+    print(out)
+    out.jacobian()
+    j = gather_jacobian(a.parameters())
+    print(j.shape)
+    print(j)
