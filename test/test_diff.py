@@ -66,13 +66,19 @@ class TestAutoDiff(ExtendedTestCase):
         j_g,j = self._get_both_jacobians(net,8,data)
         self.assertTensorClose(j_g.view(-1),j.view(-1))
 
+    def test_autodiff_batch(self):
+        net = DeepNet([10,16,14,25,8])
+        data = torch.randn(7,10)
+        j_g,j_N = self._get_both_jacobians(net,8,data,batch=True)
+        j = torch.sum(j_N,dim=0)
+        self.assertTensorClose(j_g.view(-1),j.view(-1))
 
-    def _get_both_jacobians(self,net,out_dim,data):
+
+    def _get_both_jacobians(self,net,out_dim,data,batch=False):
         grads = []
-
-        ad.util.zero_jacobian(net.parameters(),out_dim)
+        N = data.shape[0] if batch else None
+        ad.util.zero_jacobian(net.parameters(),out_dim,N)
         net_out = net(data,save_for_jacobian=True)
-        
         # Jacobian
         net_out.jacobian()
         j = ad.util.gather_jacobian(net.parameters())

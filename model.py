@@ -1,9 +1,8 @@
 # from ikostrikov
 
 import torch
-import torch.autograd as autograd
 import torch.nn as nn
-import torch.nn.functional as F
+import autodiff.functional as F
 
 
 class Policy(nn.Module):

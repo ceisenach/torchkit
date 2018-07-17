@@ -25,12 +25,30 @@ class JParameter(nn.Parameter):
     def __repr__(self):
         return 'JParameter containing:\n' + super(JParameter, self).__repr__()
 
-    def zero_jacobian_(self,d):
-        if self.jacobian is not None and self.jacobian.shape[0] == d:
-            self.jacobian.zero_()
+    # N indicates save batch-mode
+    def zero_jacobian_(self,d,N=None):
+        if N is None:
+            if self.jacobian is not None and self.jacobian.shape[0] == d:
+                self.jacobian.zero_()
+            else:
+                jacobian_shape = (d,self.size_flat)
+                self.jacobian = torch.zeros(jacobian_shape)
         else:
-            jacobian_shape = (d,self.size_flat)
-            self.jacobian = torch.zeros(jacobian_shape)
+            if self.jacobian is not None and self.jacobian.shape[0] == d and self.jacobian.shape[1] == N:
+                self.jacobian.zero_()
+            else:
+                jacobian_shape = (N,d,self.size_flat)
+                self.jacobian = torch.zeros(jacobian_shape)
+
+    def update_jacobian_(self,D):
+        if self.jacobian.dim() == 3:
+            self.jacobian += D
+        elif self.jacobian.dim() == 2:
+            D = torch.sum(D,dim=0)
+            self.jacobian += D
+        else:
+            raise RuntimeError('Undefined Behavior')
+
 
 
 class JTensor(object):

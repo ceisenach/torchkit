@@ -29,7 +29,10 @@ class BasePolicy(object):
 
 class GaussianPolicy(BasePolicy):
     """
-    Gaussian Policy
+    Gaussian Policy.
+
+    Assumes that the network models the mean and the log standard deviation
+    of a Gaussian model. The covariance is a diagonal matrix.
     """
     def __init__(self,acnet,**kwargs):
         super(GaussianPolicy,self).__init__(acnet,**kwargs)
@@ -49,7 +52,8 @@ class GaussianPolicy(BasePolicy):
 
     def kl_divergence(self,states):
         # states = states.detach()
-        mean1, log_std1, std1 = self._net(Variable(states))
+        mean1, log_std1 = self._net(Variable(states))
+        std1 = torch.exp(log_std1)
 
         mean0 = Variable(mean1.data)
         log_std0 = Variable(log_std1.data)
@@ -58,7 +62,8 @@ class GaussianPolicy(BasePolicy):
         return kl.sum(1, keepdim=True)
 
     def nll(self,a_t_hat,s_t):
-        action_means, action_log_stds, action_stds = self._net(s_t)
+        action_means, action_log_stds = self._net(s_t)
+        action_stds = torch.exp(action_log_stds)
 
         var = action_stds.pow(2)
         log_prob = -(a_t_hat - action_means).pow(2) / (2 * var) - 0.5 * math.log(2 * math.pi) - action_log_stds
@@ -71,8 +76,26 @@ class GaussianPolicy(BasePolicy):
         # if sample:
         #     self._net.eval()
 
-        action_mean, _, action_std = self._net(s_t)
+        action_mean,action_log_std = self._net(s_t)
+        action_std = torch.exp(action_log_std)
         if sample:
             action = torch.normal(action_mean, action_std)
             return action.detach()
         return action_mean.detach()
+
+
+    def fisher_information(self,states,batch_approx=False):
+        if batch_approx is True:
+            raise RuntimeError('Not implemented yet')
+
+        # Step 1 -- get Jacobian
+
+
+        # Step 2 -- pre-compute products
+
+
+        # Step 3 -- return value
+
+
+    def fisher_vector_product(self,fisher_info):
+        pass
