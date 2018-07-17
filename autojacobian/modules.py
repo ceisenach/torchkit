@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from . import JTensor, JParameter
-
+from . import util as util
 
 
 class Linear(nn.Module):
@@ -47,32 +47,24 @@ class Linear(nn.Module):
     # input X has shape N x L_2
     # out_grad should have shape N x d x L_1
     def _compute_jacobian(self,out_grad,input):
+        o,I = input.data if isinstance(input,JTensor) else input, out_grad
         # STEP 0 - do dimensionality check, process input
-        x = input.data if isinstance(input,JTensor) else input
-        N,d = out_grad.shape[0],out_grad.shape[1]
-        assert out_grad.shape[2] == self.out_features, "Bad out_grad"
-        assert N == x.shape[0], "N dim mismatch"
-        assert x.dim() == 2, "Inputs must be vectorized"
+        N,d = I.shape[0],I.shape[1]
+        assert I.shape[2] == self.out_features, "Bad out_grad"
+        assert N == o.shape[0], "N dim mismatch"
+        assert o.dim() == 2, "Inputs must be vectorized"
+        oT_I = util.bkron(o.unsqueeze(1),I) # jacobian of output wrt W
 
-        # STEP 1 - do something to update jacobian of params
-        # weight jacobian
-        out_grad_tiled = out_grad.repeat(1,1,self.in_features) # N x d x L_1L_2
-        x_expanded = x.unsqueeze(1).repeat(1,d,1) # N x d x L_2
-        x_expanded2 = x_expanded.unsqueeze(3)
-        x_expanded3 = x_expanded2.repeat(1,1,1,self.out_features) # N x d x L_2 x L_1
-        x_expanded4 = x_expanded3.view(x_expanded3.shape[0],x_expanded3.shape[1],x_expanded3.shape[2]*x_expanded3.shape[3]) # N x d x L_2L_1
-
-        assert out_grad_tiled.size() == x_expanded4.size()
-
-        jacobian_weights = torch.sum((out_grad_tiled * x_expanded4),dim=0)
-        self.weight.jacobian += jacobian_weights
+        D_W = torch.sum(oT_I,dim=0)
+        self.weight.jacobian += D_W
 
         # bias jacobian
         if self.bias is not None:
-            self.bias.jacobian += torch.sum(out_grad,dim=0)
+            D_b = torch.sum(I,dim=0)
+            self.bias.jacobian += D_b
 
         # STEP 2 - compute in_grad call jacobian on inputs
-        in_grad = torch.matmul(out_grad,self.weight.data)
+        in_grad = torch.matmul(I,self.weight.data)
         if isinstance(input,JTensor):
             input.jacobian(in_grad)
         else:

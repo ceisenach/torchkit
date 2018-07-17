@@ -31,3 +31,18 @@ def flat_dim(shape):
     for di in list(shape):
         fd *= di
     return fd
+
+# computes batch A \otimes B
+# A is N x n x m matrix, B is N x p x q
+# A \otimes B: N x np x mq
+def bkron(A,B):
+    N,n,m = A.shape
+    _,p,q = B.shape
+
+    B_tiled = B.repeat(1,n,m) # N x np x mq
+    A_expanded = A.unsqueeze(2).repeat(1,1,p,1).view(N,n*p,m) # N x np x m
+    A_expanded2 = A_expanded.unsqueeze(3).repeat(1,1,1,q).view(N,n*p,m*q) # N x np x mq
+
+    assert B_tiled.size() == A_expanded2.size()
+
+    return B_tiled * A_expanded2
