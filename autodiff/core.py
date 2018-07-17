@@ -3,6 +3,8 @@ import torch.nn as nn
 
 from . import util as util
 
+__all__ = ['JParameter','JTensor']
+
 ##########################################################
 ### Auto-Jacobian
 ##########################################################

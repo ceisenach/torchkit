@@ -37,19 +37,6 @@ class GaussianPolicy(BasePolicy):
     def __init__(self,acnet,**kwargs):
         super(GaussianPolicy,self).__init__(acnet,**kwargs)
 
-    # def nll(self,a_t_hat,s_t=None,a_t = None):
-    #     assert(s_t is not None or a_t is not None)
-    #     if a_t is None:
-    #         a_t = self._net(s_t)
-    #     a_t_hat = a_t_hat.unsqueeze(0) if len(a_t_hat.size()) == 1 else a_t_hat
-    #     a_t = a_t.unsqueeze(0) if len(a_t.size()) == 1 else a_t
-
-    #     d = a_t_hat.size()[1]
-    #     log_prob = - d * math.log(self._sigma) - 0.5*torch.sum((a_t_hat - a_t) ** 2, dim=1) / (self._sigma ** 2)
-
-    #     assert log_prob.dim() == 1
-    #     return -log_prob
-
     def kl_divergence(self,states):
         # states = states.detach()
         mean1, log_std1 = self._net(Variable(states))
@@ -64,9 +51,9 @@ class GaussianPolicy(BasePolicy):
     def nll(self,a_t_hat,s_t):
         action_means, action_log_stds = self._net(s_t)
         action_stds = torch.exp(action_log_stds)
-
         var = action_stds.pow(2)
-        log_prob = -(a_t_hat - action_means).pow(2) / (2 * var) - 0.5 * math.log(2 * math.pi) - action_log_stds
+
+        log_prob = -(a_t_hat - action_means).pow(2) / (2 * var) - action_log_stds #- 0.5 * math.log(2 * math.pi)
         log_prob = - log_prob.sum(1, keepdim=True)
 
         return log_prob
@@ -92,7 +79,7 @@ class GaussianPolicy(BasePolicy):
         N = states.shape[0]
 
         # Step 1 -- get Jacobian
-        
+
 
         # Step 2 -- pre-compute products
 

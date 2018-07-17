@@ -5,14 +5,16 @@ import math
 import logging
 logger = logging.getLogger(__name__)
 
-from . import JTensor, JParameter
+from .core import JTensor
+from .core import JParameter as Parameter
 from . import util as util
+
+__all__ = ['Parameter','Module','Linear']
 
 class Module(nn.Module):
 
     def _compute_jacobian(self,out_grad,input):
         raise NotImplementedError()
-
 
 
 class Linear(Module):
@@ -22,9 +24,9 @@ class Linear(Module):
         super(Linear, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
-        self.weight = JParameter(data=torch.Tensor(out_features, in_features))
+        self.weight = Parameter(data=torch.Tensor(out_features, in_features))
         if bias:
-            self.bias = JParameter(data=torch.Tensor(out_features))
+            self.bias = Parameter(data=torch.Tensor(out_features))
         else:
             self.register_parameter('bias', None)
         self.reset_parameters()

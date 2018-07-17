@@ -2,8 +2,9 @@ import torch
 import logging
 logger = logging.getLogger(__name__)
 
-from . import JTensor
+from .core import JTensor
 
+__all__ = ['tanh']
 
 class Jtanh(object):
     @staticmethod
