@@ -1,6 +1,5 @@
 # Imports
 import torch
-from torch.autograd import Variable
 import logging
 logger = logging.getLogger(__name__)
 
@@ -13,7 +12,9 @@ def fisher_vector_product(get_kl,v,model):
     kl = kl.mean()
     grads = torch.autograd.grad(kl, model.parameters(), create_graph=True)
     flat_grad_kl = torch.cat([grad.view(-1) for grad in grads])
-    kl_v = (flat_grad_kl * Variable(v)).sum()
+    v = v.detach()
+    v.requires_grad_(True)
+    kl_v = (flat_grad_kl * v).sum()
     grads = torch.autograd.grad(kl_v, model.parameters())
     flat_grad_grad_kl = torch.cat([grad.contiguous().view(-1) for grad in grads]).data
 
@@ -69,14 +70,12 @@ class TRPO(AlgorithmBase):
         # update value net
         l_bfgs(self._critic,S_t,G_t,self._args['l2_pen'])
 
-        fixed_log_prob = -self._policy.nll(Variable(A_t),Variable(S_t)).data.clone()
+        fixed_log_prob = -self._policy.nll(A_t,S_t).data.clone()
 
         # get_loss, get_kl needed to reconstruct graph for higher order gradients
         def get_loss(volatile=False):
-            S_t_ = S_t.detach()
-            S_t_.requires_grad_(not volatile)
-            log_prob = -self._policy.nll(Variable(A_t),S_t_)
-            action_loss = -Variable(U_t) * torch.exp(log_prob - Variable(fixed_log_prob))
+            log_prob = -self._policy.nll(A_t,S_t)
+            action_loss = - U_t * torch.exp(log_prob - fixed_log_prob)
             return action_loss.mean()
 
         get_kl = lambda : self._policy.kl_divergence(S_t)

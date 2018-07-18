@@ -57,8 +57,8 @@ class NACGauss(AlgorithmBase):
 
         # get_loss, get_kl needed to reconstruct graph for higher order gradients
         def get_loss(volatile=False):
-            S_t_ = S_t.detach()
-            S_t_.requires_grad_(not volatile)
+            # S_t_ = S_t.detach()
+            # S_t_.requires_grad_(not volatile)
             log_prob = -self._policy.nll(Variable(A_t),S_t_)
             action_loss = -Variable(U_t) * torch.exp(log_prob - Variable(fixed_log_prob))
             return action_loss.mean()
