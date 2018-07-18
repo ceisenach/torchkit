@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 import sampler
-from trpo import TRPO
+from algorithm import TRPO
 import utils
 # from model import Policy, Value
 import model
