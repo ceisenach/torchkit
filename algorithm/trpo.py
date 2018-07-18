@@ -4,7 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from . import AlgorithmBase
-from optimize import l_bfgs, conjugate_gradients,backtracking_ls
+import optimize as opt
 from utils import get_flat_params_from,set_flat_params_to
 
 def fisher_vector_product(get_kl,v,model):
@@ -39,7 +39,7 @@ class TRPO(AlgorithmBase):
 
         Fvp = lambda v : fisher_vector_product(get_kl,v,model)
 
-        stepdir = conjugate_gradients(Fvp, -loss_grad, 10, damping)
+        stepdir = opt.conjugate_gradients(Fvp, -loss_grad, 10, damping)
 
         # originally:      shs = 0.5 * (stepdir * (Fvp(stepdir)+damping*stepdir)).sum(0, keepdim=True)
         shs = 0.5 * (stepdir * Fvp(stepdir)).sum(0, keepdim=True)
@@ -51,7 +51,7 @@ class TRPO(AlgorithmBase):
         logger.info('lagrange multiplier %s, grad norm: %s' % (str(lm[0]),str(loss_grad.norm())))
 
         prev_params = get_flat_params_from(model)
-        success, new_params = backtracking_ls(model, get_loss, prev_params, fullstep, neggdotstepdir / lm[0])
+        success, new_params = opt.backtracking_ls(model, get_loss, prev_params, fullstep, neggdotstepdir / lm[0])
         set_flat_params_to(model, new_params)
 
         return loss
@@ -68,7 +68,7 @@ class TRPO(AlgorithmBase):
         S_t,A_t,G_t,U_t = batch
 
         # update value net
-        l_bfgs(self._critic,S_t,G_t,self._args['l2_pen'])
+        opt.l_bfgs(opt.l2_loss_l2_reg,self._critic,S_t,G_t,self._args['l2_pen'])
 
         fixed_log_prob = -self._policy.nll(A_t,S_t).data.clone()
 

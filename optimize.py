@@ -45,41 +45,44 @@ def backtracking_ls(model,f,x,fullstep,expected_improve_rate,max_backtracks=10,a
     return False, x
 
 
-def loss_function_eval_grad(loss_function,args):
-    pass
+def function_eval_grad(loss_function,model,*args,params=None):
+    # check if need to set model params
+    if params is not None:
+        set_flat_params_to(model, torch.from_numpy(params))
+        for param in model.parameters():
+            if param.grad is not None:
+                param.grad.data.fill_(0)
 
-
-def l2_loss_with_regularizer():
-    pass
-
-
-def _l2_loss_eval_and_grad(net,parameter_vals,x,y,l2_weight_penalty):
-    set_flat_params_to(net, torch.from_numpy(parameter_vals))
-    for param in net.parameters():
-        if param.grad is not None:
-            param.grad.data.fill_(0)
-
-    y_hat = net(x)
-    value_loss = (y_hat - y).pow(2).mean()
-
-    # weight decay
-    for param in net.parameters():
-        value_loss += param.pow(2).sum() * l2_weight_penalty
-
-    # Compute and extract gradient and loss value
-    value_loss.backward()
-    loss_val = value_loss.data.double().numpy()
-    loss_grad = get_flat_grad_from(net).data.double().numpy()
+    # Compute loss and extract gradient, loss value
+    loss = loss_function(model,*args)
+    loss.backward()
+    loss_val = loss.detach().double().numpy()
+    loss_grad = get_flat_grad_from(model).detach().double().numpy()
     return loss_val,loss_grad
 
 
+def l2_loss_l2_reg(model,x,y,lambda_penalty):
+    """
+    Computes ||f(x;theta) - y||^2_2 + lambda sum_i=1^d ||theta_i||_2^2
+    """
+    x, y = x.detach(), y.detach()
+    y_hat = model(x)
+    loss = (y_hat - y).pow(2).mean()
+
+    # weight decay
+    for param in model.parameters():
+        loss += lambda_penalty * param.pow(2).sum()
+
+    return loss
 
 
-def l_bfgs(net,x,y,l2_penalty):
-    # Original code uses the same LBFGS to optimize the value loss
-    x = x.detach()
-    y = y.detach()
-    eval_loss_and_grad = lambda pv : _l2_loss_eval_and_grad(net,pv,x,y,l2_penalty)
+# call l_bfgs(model,loss,*args)
+def l_bfgs(fn,model,*args,maxiter=25):
+    """
+    Run L-BFGS algorithm. args is anything required for the loss function
+    """
+    _loss_eval_grad = lambda pv : function_eval_grad(fn,model,*args,params=pv)
 
-    flat_params, _, opt_info = scipy.optimize.fmin_l_bfgs_b(eval_loss_and_grad, get_flat_params_from(net).double().numpy(), maxiter=25)
-    set_flat_params_to(net, torch.from_numpy(flat_params))
+    params_0 = get_flat_params_from(model).double().numpy()
+    params_T, _, opt_info = scipy.optimize.fmin_l_bfgs_b(_loss_eval_grad, params_0, maxiter=maxiter)
+    set_flat_params_to(model, torch.from_numpy(params_T))
