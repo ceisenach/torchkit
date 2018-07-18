@@ -5,8 +5,7 @@ from torch.autograd import Variable
 import logging
 logger = logging.getLogger(__name__)
 
-from utils import get_flat_grad_from,get_flat_params_from,set_flat_params_to
-
+import utils as ut
 
 def conjugate_gradients(Avp, b, nsteps, damping, residual_tol=1e-10):
     x = torch.zeros(b.size())
@@ -32,7 +31,7 @@ def backtracking_ls(model,f,x,fullstep,expected_improve_rate,max_backtracks=10,a
     logger.info('fval before: %0.5f'%fval.item())
     for (_n_backtracks, stepfrac) in enumerate(.5**np.arange(max_backtracks)):
         xnew = x + stepfrac * fullstep
-        set_flat_params_to(model, xnew)
+        ut.set_flat_params_to(model, xnew)
         newfval = f(True).data
         actual_improve = fval - newfval
         expected_improve = expected_improve_rate * stepfrac
@@ -48,7 +47,7 @@ def backtracking_ls(model,f,x,fullstep,expected_improve_rate,max_backtracks=10,a
 def function_eval_grad(loss_function,model,*args,params=None):
     # check if need to set model params
     if params is not None:
-        set_flat_params_to(model, torch.from_numpy(params))
+        ut.set_flat_params_to(model, torch.from_numpy(params))
         for param in model.parameters():
             if param.grad is not None:
                 param.grad.data.fill_(0)
@@ -57,7 +56,7 @@ def function_eval_grad(loss_function,model,*args,params=None):
     loss = loss_function(model,*args)
     loss.backward()
     loss_val = loss.detach().double().numpy()
-    loss_grad = get_flat_grad_from(model).detach().double().numpy()
+    loss_grad = ut.get_flat_grad_from(model).detach().double().numpy()
     return loss_val,loss_grad
 
 
@@ -83,6 +82,6 @@ def l_bfgs(fn,model,*args,maxiter=25):
     """
     _loss_eval_grad = lambda pv : function_eval_grad(fn,model,*args,params=pv)
 
-    params_0 = get_flat_params_from(model).double().numpy()
+    params_0 = ut.get_flat_params_from(model).double().numpy()
     params_T, _, opt_info = scipy.optimize.fmin_l_bfgs_b(_loss_eval_grad, params_0, maxiter=maxiter)
-    set_flat_params_to(model, torch.from_numpy(params_T))
+    ut.set_flat_params_to(model, torch.from_numpy(params_T))

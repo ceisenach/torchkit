@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 from . import AlgorithmBase
 import optimize as opt
-from utils import get_flat_params_from,set_flat_params_to
+import utils as ut
 
 def fisher_vector_product(get_kl,v,model):
     kl = get_kl()
@@ -50,9 +50,9 @@ class TRPO(AlgorithmBase):
         neggdotstepdir = (-loss_grad * stepdir).sum(0, keepdim=True)
         logger.info('lagrange multiplier %s, grad norm: %s' % (str(lm[0]),str(loss_grad.norm())))
 
-        prev_params = get_flat_params_from(model)
+        prev_params = ut.get_flat_params_from(model)
         success, new_params = opt.backtracking_ls(model, get_loss, prev_params, fullstep, neggdotstepdir / lm[0])
-        set_flat_params_to(model, new_params)
+        ut.set_flat_params_to(model, new_params)
 
         return loss
 
