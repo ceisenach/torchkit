@@ -3,6 +3,8 @@ import torch
 from torch.autograd import Variable
 import math
 
+import autodiff as ad
+
 
 class BasePolicy(object):
     """
@@ -79,13 +81,51 @@ class GaussianPolicy(BasePolicy):
         N = states.shape[0]
 
         # Step 1 -- get Jacobian
-
+        ad.util.zero_grad(self._net.parameters())
+        act_mean, act_log_std = self._net(states,save_for_jacobian=True)
+        act_mean.jacobian(mode='batch')
+        Dmu = ad.util.gather_jacobian(self._net.parameters())
 
         # Step 2 -- pre-compute products
+        act_mean = act_mean.data
+        act_std = torch.exp(act_log_std.data[0])
+        act_std_inv = 1./act_std
+        act_std_inv2 = act_std_inv ** 2
 
+        Ig_11_Dmu = act_std_inv.unsqueeze(1).unsqueeze(0).expand(Dmu.shape) * Dmu #OK 
+        Ig_21d = - act_std_inv2.unsqueeze(0).expand(act_mean.shape) * act_mean #OK
+        I_21 = Ig_21d.unsqueeze(2).expand(Dmu.shape) * Dmu #OK
+        EI_21 = torch.sum(I_21,dim=0) #OK
+
+        EI_22d = 0.5 * act_std_inv2 #OK
+        DmuT = Dmu.transpose_(1,2).contiguous() #OK
 
         # Step 3 -- return value
+        # Not sure if detach is necessary, but want to free any graph
+        return {'DmuT':DmuT.detach(),'Ig_11_Dmu':Ig_11_Dmu.detach(),
+                'EI_21':EI_21.detach(),'EI_22d':EI_22d.detach()}
 
 
-    def fisher_vector_product(self,fisher_info):
-        pass
+    def fisher_vector_product(self,fisher_info,v):
+        DmuT,Ig_11_Dmu,EI_21,EI_22d = fisher_info['DmuT'],fisher_info['Ig_11_Dmu'],fisher_info['EI_21'],fisher_info['EI_22d']
+        N,d_1,d_2 = DmuT.shape
+        v1 = v[:d_1]
+        v2 = v[d_1:]
+
+        # calculate upper partition
+        v1batched = v1.unsqueeze(0).expand(N,d_1)
+        v2batched = v2.unsqueeze(0).expand(N,d_2)
+        g1_1 = torch.bmm(Ig_11_Dmu,v1batched.unsqueeze(-1))
+        g1_1 = torch.bmm(DmuT,g1_1)
+        g1_1 = torch.sum(g1_1,dim=0).squeeze()
+        g1_2 = torch.mm(v2.unsqueeze(0),EI_21).squeeze()
+        g1 = g1_1 + g1_2
+
+        # calculate lower partition
+        g2_1 = torch.mm(EI_21,v1.unsqueeze(1)).squeeze()
+        g2_2 = EI_22d * v2
+        g2 = g2_1 + g2_2
+
+        # combine and return
+        g = torch.cat([g1,g2],dim=0)
+        return g

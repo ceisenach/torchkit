@@ -21,8 +21,6 @@ def gather_jacobian(param_list):
         pj = p.jacobian
         if pj is not None:
             pjs.append(pj)
-        else:
-            print('None jacobian')
 
     jacobian = torch.cat(pjs,dim=-1)
     return jacobian
