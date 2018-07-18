@@ -25,10 +25,12 @@ def experiment_argparser():
     parser.add_argument('--max_kl', type=float, default=1e-2, metavar='G',help='max kl value (default: 1e-2)')
     parser.add_argument('--seed', type=int, default=543, metavar='N',help='random seed (default: 1)')
     parser.add_argument('--damping', type=float, default=1e-1, metavar='G',help='damping (default: 1e-1)')
+    parser.add_argument('-a','--alg',type=str, default='TRPO', metavar='G',help='algorithm to use')
     return parser
 
 def train_config_from_args(args):
     experiment_config = {'gamma' : args.gamma,
+                         'alg' : args.alg,
                          'tau' : args.tau,
                          'max_kl' : args.max_kl,
                          'l2_pen' : args.l2_pen,

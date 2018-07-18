@@ -70,3 +70,4 @@ class AlgorithmBase(object):
 ###########################################
 # Import commonly used names
 from .trpo import TRPO
+from .nac import NACGauss

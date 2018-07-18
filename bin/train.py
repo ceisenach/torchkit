@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 import sampler
-from algorithm import TRPO
+from algorithm import TRPO, NACGauss
 import utils
 # from model import Policy, Value
 import model
@@ -50,7 +50,12 @@ if __name__ == '__main__':
 
     ###############################
     # CREATE ENVIRONMENT AND RUN
-    algo = TRPO(plc,critic_net,train_config)
+    if train_config['alg'] == 'TRPO':
+        algo = TRPO(plc,critic_net,train_config)
+    elif train_config['alg'] == 'NAC':
+        algo = NACGauss(plc,critic_net,train_config)
+    else:
+        raise RuntimeError('Algorithm not found')
 
     sampler = sampler.Sampler(plc,**train_config)
     cumulative_rewards = np.array([]).reshape((0,3))

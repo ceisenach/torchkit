@@ -1,8 +1,7 @@
 import torch
 
-
 from . import AlgorithmBase
-
+import autodiff as ad
 
 class NACGauss(AlgorithmBase):
     """
@@ -12,6 +11,7 @@ class NACGauss(AlgorithmBase):
         super(NACGauss,self).__init__(policy,critic,args,**kwargs)
         self._updates = 0
         self._batch_prepare = self._batch_prepare_full_gae
+        self._critic_optimizer = torch.optim.SGD(self._critic.parameters(), lr=args['lr'])
 
 
     def _trpo_step(self, get_loss, get_kl, max_kl, damping):
@@ -22,7 +22,7 @@ class NACGauss(AlgorithmBase):
 
         Fvp = lambda v : fisher_vector_product(get_kl,v,model)
 
-        stepdir = conjugate_gradients(Fvp, -loss_grad, 10, damping)
+        stepdir = opt.conjugate_gradients(Fvp, -loss_grad, 10, damping)
 
         # originally:      shs = 0.5 * (stepdir * (Fvp(stepdir)+damping*stepdir)).sum(0, keepdim=True)
         shs = 0.5 * (stepdir * Fvp(stepdir)).sum(0, keepdim=True)
@@ -33,37 +33,47 @@ class NACGauss(AlgorithmBase):
         neggdotstepdir = (-loss_grad * stepdir).sum(0, keepdim=True)
         logger.info('lagrange multiplier %s, grad norm: %s' % (str(lm[0]),str(loss_grad.norm())))
 
-        prev_params = get_flat_params_from(model)
-        success, new_params = backtracking_ls(model, get_loss, prev_params, fullstep, neggdotstepdir / lm[0])
-        set_flat_params_to(model, new_params)
+        prev_params = ut.get_flat_params_from(model)
+        success, new_params = opt.backtracking_ls(model, get_loss, prev_params, fullstep, neggdotstepdir / lm[0])
+        ut.set_flat_params_to(model, new_params)
 
         return loss
+
+
+    def _actor_update(self,S_t,A_t_hat,U_t):
+        # dont need to construct loss, can just use jacobian directly
+        act_mean, act_log_std = self._net(S_t,save_for_jacobian=True)
+        act_mean.jacobian(mode='batch')
+        Dmu = ad.util.gather_jacobian(self._net.parameters())
+        
+
+
+
+        lf_actor = torch.mean(U_1.view(-1) * self._policy.nll(a_t_hat,a_t = a_t))
+
+
 
 
     def update(self,batch_list):
         """
         Update the actor and critic net from sampled minibatches
         """
+        # self._actor.train(),self._critic.train()
         batch = self._batch_merge(batch_list)
         if batch is None:
             return
 
-        S_t,A_t,G_t,U_t = batch
+        S_t,A_t_hat,G_t,U_t = batch
+        V_t = self._critic(S_t)
 
-        # update value net
-        l_bfgs(self._critic,S_t,G_t,self._args['l2_pen'])
+        # critic update
+        lf_critic = torch.mean((G_t - V_t)**2)
+        self._critic_optimizer.zero_grad()
+        lf_critic.backward()
+        self._critic_optimizer.step()
 
-        fixed_log_prob = -self._policy.nll(Variable(A_t),Variable(S_t)).data.clone()
+        # actor loss
+        self._actor_update(S_t,A_t_hat,U_t)
 
-        # get_loss, get_kl needed to reconstruct graph for higher order gradients
-        def get_loss(volatile=False):
-            # S_t_ = S_t.detach()
-            # S_t_.requires_grad_(not volatile)
-            log_prob = -self._policy.nll(Variable(A_t),S_t_)
-            action_loss = -Variable(U_t) * torch.exp(log_prob - Variable(fixed_log_prob))
-            return action_loss.mean()
-
-        get_kl = lambda : self._policy.kl_divergence(S_t)
-
-        self._trpo_step(get_loss, get_kl, self._args['max_kl'], self._args['damping'])
-
+        # update
+        self._updates += 1

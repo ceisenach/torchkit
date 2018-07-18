@@ -73,7 +73,7 @@ class GaussianPolicy(BasePolicy):
         return action_mean.detach()
 
 
-    def fisher_information(self,states,batch_approx=False):
+    def fisher_information(self,states,batch_approx=False,jacobian_precompute = None):
         assert states.dim() == 2, "States should be 2D"
         if batch_approx is True:
             raise RuntimeError('Not implemented yet')
@@ -81,10 +81,15 @@ class GaussianPolicy(BasePolicy):
         N = states.shape[0]
 
         # Step 1 -- get Jacobian
-        ad.util.zero_grad(self._net.parameters())
-        act_mean, act_log_std = self._net(states,save_for_jacobian=True)
-        act_mean.jacobian(mode='batch')
-        Dmu = ad.util.gather_jacobian(self._net.parameters())
+        act_mean,act_log_std,Dmu = None,None,None
+        if jacobian_precompute is None:
+            ad.util.zero_jacobian(self._net.parameters())
+            act_mean, act_log_std = self._net(states,save_for_jacobian=True)
+            act_mean.jacobian(mode='batch')
+            Dmu = ad.util.gather_jacobian(self._net.parameters())
+        else:
+            act_mean,act_log_std,Dmu = jacobian_precompute['act_mean'], \
+            jacobian_precompute['act_log_std'],jacobian_precompute['Dmu']
 
         # Step 2 -- pre-compute products
         act_mean = act_mean.data
