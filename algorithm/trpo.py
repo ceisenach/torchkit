@@ -75,7 +75,7 @@ class TRPO(AlgorithmBase):
         # get_loss, get_kl needed to reconstruct graph for higher order gradients
         def get_loss(volatile=False):
             log_prob = -self._policy.nll(A_t,S_t)
-            action_loss = - U_t * torch.exp(log_prob - fixed_log_prob)
+            action_loss = - U_t.view(-1) * torch.exp(log_prob - fixed_log_prob)
             return action_loss.mean()
 
         get_kl = lambda : self._policy.kl_divergence(S_t)
