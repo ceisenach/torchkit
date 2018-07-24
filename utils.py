@@ -132,3 +132,8 @@ def get_flat_grad_from(net, grad_grad=False):
     flat_grad = torch.cat(grads)
     return flat_grad
 
+
+def total_params(net,only_grad = False):
+    if only_grad:
+        return sum(p.numel() for p in net.parameters() if p.requires_grad)
+    return sum(p.numel() for p in net.parameters())

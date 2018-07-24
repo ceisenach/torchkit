@@ -55,28 +55,29 @@ class Linear(Module):
     # input X has shape N x L_2
     # out_grad should have shape N x d x L_1
     def _compute_jacobian(self,out_grad,input,mode):
-        o,I = input.data if isinstance(input,JTensor) else input, out_grad
-        # STEP 0 - do dimensionality check, process input
-        N,d = I.shape[0],I.shape[1]
-        assert I.shape[2] == self.out_features, "Bad out_grad"
-        assert N == o.shape[0], "N dim mismatch"
-        assert o.dim() == 2, "Inputs must be vectorized"
+        with torch.autograd.no_grad():
+            o,I = input.data if isinstance(input,JTensor) else input, out_grad
+            # STEP 0 - do dimensionality check, process input
+            N,d = I.shape[0],I.shape[1]
+            assert I.shape[2] == self.out_features, "Bad out_grad"
+            assert N == o.shape[0], "N dim mismatch"
+            assert o.dim() == 2, "Inputs must be vectorized"
 
-        # STEP 1 -- compute Jacobian
-        # Note - technically this should be o^T \otimes I, but python is row-major
-        # see main.tex for more details.
-        I_oT = util.bkron(I,o.unsqueeze(1)) # jacobian of output wrt W
-        self.weight.update_jacobian_(I_oT,mode)
+            # STEP 1 -- compute Jacobian
+            # Note - technically this should be o^T \otimes I, but python is row-major
+            # see main.tex for more details.
+            I_oT = util.bkron(I,o.unsqueeze(1)) # jacobian of output wrt W
+            self.weight.update_jacobian_(I_oT,mode)
 
-        # bias jacobian
-        if self.bias is not None:
-            self.bias.update_jacobian_(I,mode)
+            # bias jacobian
+            if self.bias is not None:
+                self.bias.update_jacobian_(I,mode)
 
 
-        # STEP 2 - compute in_grad call jacobian on inputs
-        in_grad = torch.matmul(I,self.weight.data)
-        if isinstance(input,JTensor):
-            input.jacobian(in_grad,mode)
-        else:
-            logger.debug('Compute graph leaf')
+            # STEP 2 - compute in_grad call jacobian on inputs
+            in_grad = torch.matmul(I,self.weight.data)
+            if isinstance(input,JTensor):
+                input.jacobian(in_grad,mode)
+            else:
+                logger.debug('Compute graph leaf')
 

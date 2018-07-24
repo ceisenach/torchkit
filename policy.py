@@ -4,6 +4,7 @@ from torch.autograd import Variable
 import math
 
 import autodiff as ad
+import utils as ut
 
 
 class BasePolicy(object):
@@ -74,53 +75,61 @@ class GaussianPolicy(BasePolicy):
 
 
     def fisher_information(self,states,batch_approx=False,jacobian_precompute = None):
-        assert states.dim() == 2, "States should be 2D"
-        if batch_approx is True:
-            raise RuntimeError('Not implemented yet')
+        with torch.autograd.no_grad():
+            assert states.dim() == 2, "States should be 2D"
+            if batch_approx is True:
+                raise RuntimeError('Not implemented yet')
 
-        N = states.shape[0]
+            N = states.shape[0]
+            # import pdb; pdb.set_trace()
 
-        # Step 1 -- get Jacobian
-        act_mean,act_log_std,Dmu = None,None,None
-        if jacobian_precompute is None:
-            ad.util.zero_jacobian(self._net.parameters())
-            act_mean, act_log_std = self._net(states,save_for_jacobian=True)
-            act_mean.jacobian(mode='batch')
-            Dmu = ad.util.gather_jacobian(self._net.parameters())
-        else:
-            act_mean,act_log_std,Dmu = jacobian_precompute['act_mean'], \
-            jacobian_precompute['act_log_std'],jacobian_precompute['Dmu']
+            # Step 1 -- get Jacobian
+            act_mean,act_log_std,Dmu = None,None,None
+            if jacobian_precompute is None:
+                # ad.util.zero_jacobian(self._net.parameters())
+                # act_mean, act_log_std = self._net(states,save_for_jacobian=True)
+                # act_mean.jacobian(mode='batch')
+                # Dmu = ad.util.gather_jacobian(self._net.parameters())
+                act_mean, act_log_std = self._net(states)
+                Dmu = torch.randn(N,self._net._num_outputs,ut.total_params(self._net)-self._net._num_outputs)
+            else:
+                act_mean,act_log_std,Dmu = jacobian_precompute['act_mean'], \
+                jacobian_precompute['act_log_std'],jacobian_precompute['Dmu']
 
-        # Step 2 -- pre-compute products
-        act_mean = act_mean.data
-        act_std = torch.exp(act_log_std.data[0])
-        act_std_inv = 1./act_std
-        act_std_inv2 = act_std_inv ** 2
+            # Step 2 -- pre-compute products
+            act_mean = act_mean.data
+            act_std = torch.exp(act_log_std.data[0])
+            act_std_inv = 1./act_std
+            act_std_inv2 = act_std_inv ** 2
 
-        Ig_11_Dmu = act_std_inv.unsqueeze(1).unsqueeze(0).expand(Dmu.shape) * Dmu #OK 
-        EI_22d = 0.5 * act_std_inv2 #OK
-        DmuT = Dmu.transpose_(1,2).contiguous() #OK
+            Ig_11_Dmu = act_std_inv.unsqueeze(1).unsqueeze(0).expand(Dmu.shape) * Dmu #OK 
+            EI_22d = 0.5 * act_std_inv2 #OK
+            DmuT = Dmu.transpose_(1,2).contiguous() #OK
 
-        # Step 3 -- return value
-        # Not sure if detach is necessary, but want to free any graph
-        return {'DmuT':DmuT.detach(),'Ig_11_Dmu':Ig_11_Dmu.detach(),'EI_22d':EI_22d.detach()}
+            # Step 3 -- return value
+            # Not sure if detach is necessary, but want to free any graph
+            # return {'DmuT':DmuT.detach(),'Ig_11_Dmu':Ig_11_Dmu.detach(),'EI_22d':EI_22d.detach()}
+            # return {'DmuT':DmuT,'Ig_11_Dmu':Ig_11_Dmu,'EI_22d':EI_22d}
+            return DmuT.detach(),Ig_11_Dmu.detach(),EI_22d.detach()
 
 
-    def fisher_vector_product(self,fisher_info,v):
-        DmuT,Ig_11_Dmu,EI_22d = fisher_info['DmuT'],fisher_info['Ig_11_Dmu'],fisher_info['EI_22d']
-        N,d_1,d_2 = DmuT.shape
-        v1 = v[:d_1]
-        v2 = v[d_1:]
+    # def fisher_vector_product(self,fisher_info,v):
+    #     DmuT,Ig_11_Dmu,EI_22d = fisher_info['DmuT'],fisher_info['Ig_11_Dmu'],fisher_info['EI_22d']
+    def fisher_vector_product(self,DmuT,Ig_11_Dmu,EI_22d,v):
+        with torch.autograd.no_grad():
+            N,d_1,d_2 = DmuT.shape
+            v1 = v[:d_1]
+            v2 = v[d_1:]
 
-        # calculate upper partition
-        v1batched = v1.unsqueeze(0).expand(N,d_1)
-        g1 = torch.bmm(Ig_11_Dmu,v1batched.unsqueeze(-1))
-        g1 = torch.bmm(DmuT,g1)
-        g1 = (1./N) * torch.sum(g1,dim=0).squeeze()
+            # calculate upper partition
+            v1batched = v1.unsqueeze(0).expand(N,d_1)
+            g1 = torch.bmm(Ig_11_Dmu,v1batched.unsqueeze(-1))
+            g1 = torch.bmm(DmuT,g1)
+            g1 = (1./N) * torch.sum(g1,dim=0).squeeze()
 
-        # calculate lower partition
-        g2 = EI_22d * v2
+            # calculate lower partition
+            g2 = EI_22d * v2
 
-        # combine and return
-        g = torch.cat([g1,g2],dim=0)
-        return g
+            # combine and return
+            g = torch.cat([g1,g2],dim=0)
+            return g

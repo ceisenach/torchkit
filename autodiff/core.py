@@ -35,22 +35,23 @@ class JParameter(nn.Parameter):
 
     def update_jacobian_(self,D,mode):
         # check if its already been updated at least once
-        if not self.__jacobian_ready:
-            shape = D.shape if mode=='batch' else D.shape[1:] if mode=='sum' else None
-            if not (self._jacobian is not None and self._jacobian.shape == shape):
-                # print('Mode: %s. D shape: %s. J shape: %s' %(mode,str(D.shape),str(shape)))
-                self._jacobian = torch.zeros(shape)
-                
-        # update
-        if mode == 'batch':
-            pass
-        elif mode == 'sum':
-            D = torch.sum(D,dim=0)
-        else:
-            raise RuntimeError('Undefined Behavior')
+        with torch.autograd.no_grad():
+            if not self.__jacobian_ready:
+                shape = D.shape if mode=='batch' else D.shape[1:] if mode=='sum' else None
+                if not (self._jacobian is not None and self._jacobian.shape == shape):
+                    # print('Mode: %s. D shape: %s. J shape: %s' %(mode,str(D.shape),str(shape)))
+                    self._jacobian = torch.zeros(shape)
+                    
+            # update
+            if mode == 'batch':
+                pass
+            elif mode == 'sum':
+                D = torch.sum(D,dim=0)
+            else:
+                raise RuntimeError('Undefined Behavior')
 
-        self._jacobian += D
-        self.__jacobian_ready = True
+            self._jacobian += D.data # need to make sure not to tie up computation graph
+            self.__jacobian_ready = True
 
 
     @property

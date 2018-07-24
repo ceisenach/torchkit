@@ -17,6 +17,8 @@ class Policy(nn.Module):
         self.action_mean.bias.data.mul_(0.0)
 
         self.action_log_std = nn.Parameter(data=torch.zeros(num_outputs))
+        self._num_outputs = num_outputs
+        self._num_inputs = num_inputs
 
 
     def forward(self, x,save_for_jacobian=False,**kwargs):
