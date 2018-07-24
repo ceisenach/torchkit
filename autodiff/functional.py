@@ -22,13 +22,15 @@ class Jtanh(object):
             assert sech2_x_expanded.shape == out_grad.shape, "shape needs to be same"
             in_grad = out_grad * sech2_x_expanded
             in_grad = in_grad.detach()
+        
         else:
             x = input.ndata if isinstance(input,JTensor) else input.numpy()
             sech2_x = 1. - np.tanh(x)**2
-            sech2_x_expanded = np.expand_dims(x,axis=1)
+            sech2_x_expanded = np.expand_dims(sech2_x,axis=1)
             sech2_x_expanded = np.tile(sech2_x_expanded,(1,out_grad.shape[1],1))
             assert sech2_x_expanded.shape == out_grad.shape, "shape needs to be same"
             in_grad = out_grad * sech2_x_expanded
+
 
         # continue down graph
         if isinstance(input,JTensor):
