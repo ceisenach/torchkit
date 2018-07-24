@@ -34,16 +34,17 @@ class NACGauss(AlgorithmBase):
         # FVP = lambda v : self._policy.fisher_vector_product(fi,v)
         # stepdir = opt.conjugate_gradients(FVP, lg, 10, self._args['damping'])
 
-        fi_a,fi_b,fi_c = self._policy.fisher_information(S_t)
-        FVP = lambda v : self._policy.fisher_vector_product(fi_a,fi_b,fi_c,v)
-        stepdir = opt.conjugate_gradients(FVP, lg, 10, self._args['damping'])
-        stepdir = lg
+        # fi_a,fi_b,fi_c = self._policy.fisher_information(S_t)
+        # FVP = lambda v : self._policy.fisher_vector_product(fi_a,fi_b,fi_c,v)
+        # stepdir = opt.conjugate_gradients(FVP, lg, 10, self._args['damping'])
+        # stepdir = lg
+        fi_a,fi_b,fi_c = self._policy.fi2(S_t)
 
         # Update model
         prev_params = ut.get_flat_params_from(self._actor)
-        new_params = prev_params - self._args['lr'] * stepdir
+        new_params = prev_params - self._args['lr'] * lg
         ut.set_flat_params_to(self._actor, new_params)
-        gc.collect()
+        # gc.collect()
 
         # del fi,lg,FVP,stepdir,prev_params,new_params,lf_actor
 

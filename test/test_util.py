@@ -15,6 +15,16 @@ class TestKronecker(ExtendedTestCase):
     def test_bkron3(self):
         self._test_bkron_impl(4,3,5,1)
 
+    def test_bkron_numpy(self):
+        n,m,p,q = (4,3,5,2)
+        A = torch.randn(10,n,m)
+        B = torch.randn(10,p,q)
+        t_kron = util.bkron(A,B)
+        np_kron = util.bkron(A.numpy(),B.numpy())
+        tnp_kron = torch.from_numpy(np_kron)
+        self.assertEqual(torch.sum(torch.abs(tnp_kron-t_kron)),0.0)
+
+
     def _test_bkron_impl(self,n,m,p,q):
         A = torch.randn(n,m)
         B = torch.randn(p,q)

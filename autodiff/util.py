@@ -1,5 +1,5 @@
 import torch
-
+import numpy as np
 
 ##########################################################
 ### Utility Functions
@@ -48,13 +48,33 @@ def flat_dim(shape):
 # A is N x n x m matrix, B is N x p x q
 # A \otimes B: N x np x mq
 def bkron(A,B):
-    N,n,m = A.shape
-    _,p,q = B.shape
+    if isinstance(A,torch.Tensor):
+        A,B = A.detach(), B.detach()
+        A.requires_grad_(False), B.requires_grad_(False)
+        N,n,m = A.shape
+        _,p,q = B.shape
 
-    B_tiled = B.repeat(1,n,m) # N x np x mq
-    A_expanded = A.unsqueeze(2).repeat(1,1,p,1).view(N,n*p,m) # N x np x m
-    A_expanded2 = A_expanded.unsqueeze(3).repeat(1,1,1,q).view(N,n*p,m*q) # N x np x mq
+        B_tiled = B.repeat(1,n,m) # N x np x mq
+        A_expanded = A.unsqueeze(2).repeat(1,1,p,1).view(N,n*p,m) # N x np x m
+        A_expanded2 = A_expanded.unsqueeze(3).repeat(1,1,1,q).view(N,n*p,m*q) # N x np x mq
 
-    assert B_tiled.size() == A_expanded2.size()
+        assert B_tiled.size() == A_expanded2.size()
 
-    return B_tiled * A_expanded2
+        return (B_tiled * A_expanded2).detach()
+
+    # pure numpy implementation of bkron
+    else:
+        N,n,m = A.shape
+        _,p,q = B.shape
+
+        B_tiled = np.tile(B,(1,n,m)) # N x np x mq
+        A_expanded = np.expand_dims(A,axis=2)
+        A_expanded = np.tile(A_expanded,(1,1,p,1))
+        A_expanded.shape = (N,n*p,m)
+        A_expanded2 = np.expand_dims(A_expanded,axis=3)
+        A_expanded2 = np.tile(A_expanded2,(1,1,1,q))
+        A_expanded2.shape = (N,n*p,m*q)
+
+        assert B_tiled.shape == A_expanded2.shape
+
+        return B_tiled * A_expanded2

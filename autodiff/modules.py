@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 import logging
+import numpy as np
 logger = logging.getLogger(__name__)
 
 from .core import JTensor
@@ -55,7 +56,9 @@ class Linear(Module):
     # input X has shape N x L_2
     # out_grad should have shape N x d x L_1
     def _compute_jacobian(self,out_grad,input,mode):
-        with torch.autograd.no_grad():
+        # Check which implementation to use
+        in_grad,I,I_oT = None,None,None
+        if isinstance(out_grad,torch.Tensor):
             o,I = input.data if isinstance(input,JTensor) else input, out_grad
             # STEP 0 - do dimensionality check, process input
             N,d = I.shape[0],I.shape[1]
@@ -67,17 +70,29 @@ class Linear(Module):
             # Note - technically this should be o^T \otimes I, but python is row-major
             # see main.tex for more details.
             I_oT = util.bkron(I,o.unsqueeze(1)) # jacobian of output wrt W
-            self.weight.update_jacobian_(I_oT,mode)
 
-            # bias jacobian
-            if self.bias is not None:
-                self.bias.update_jacobian_(I,mode)
-
-
-            # STEP 2 - compute in_grad call jacobian on inputs
+            # STEP 2 - compute in_grad
             in_grad = torch.matmul(I,self.weight.data)
-            if isinstance(input,JTensor):
-                input.jacobian(in_grad,mode)
-            else:
-                logger.debug('Compute graph leaf')
+            in_grad = in_grad.detach()
+        else:
+            o,I = input.ndata if isinstance(input,JTensor) else input.numpy(), out_grad
+            o = np.expand_dims(o,axis=1)
+            I_oT = util.bkron(I,o)
+            print(o.shape)
+
+            raise RuntimeError()
+            pass
+
+
+        # STEP 3 - Do updates
+        self.weight.update_jacobian_(I_oT,mode)
+        if self.bias is not None:
+            self.bias.update_jacobian_(I,mode)
+
+
+        # STEP 4 - call Jacobian on inputs
+        if isinstance(input,JTensor):
+            input.jacobian(in_grad,mode)
+        else:
+            logger.debug('Compute graph leaf')
 
