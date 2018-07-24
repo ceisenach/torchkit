@@ -78,10 +78,7 @@ class Linear(Module):
             o,I = input.ndata if isinstance(input,JTensor) else input.numpy(), out_grad
             o = np.expand_dims(o,axis=1)
             I_oT = util.bkron(I,o)
-            print(o.shape)
-
-            raise RuntimeError()
-            pass
+            in_grad = np.matmul(I,self.weight.data.numpy())
 
 
         # STEP 3 - Do updates
@@ -92,6 +89,7 @@ class Linear(Module):
 
         # STEP 4 - call Jacobian on inputs
         if isinstance(input,JTensor):
+            print(type(in_grad))
             input.jacobian(in_grad,mode)
         else:
             logger.debug('Compute graph leaf')

@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 import logging
 logger = logging.getLogger(__name__)
 
@@ -23,9 +24,11 @@ class Jtanh(object):
             in_grad = in_grad.detach()
         else:
             x = input.ndata if isinstance(input,JTensor) else input.numpy()
-            raise RuntimeError()
-            # x,out_grad = torch.from_numpy(x), torch.from_numpy(out_grad)
-
+            sech2_x = 1. - np.tanh(x)**2
+            sech2_x_expanded = np.expand_dims(x,axis=1)
+            sech2_x_expanded = np.tile(sech2_x_expanded,(1,out_grad.shape[1],1))
+            assert sech2_x_expanded.shape == out_grad.shape, "shape needs to be same"
+            in_grad = out_grad * sech2_x_expanded
 
         # continue down graph
         if isinstance(input,JTensor):

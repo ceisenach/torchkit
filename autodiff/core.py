@@ -43,7 +43,10 @@ class JParameter(nn.Parameter):
                 # print('Mode: %s. D shape: %s. J shape: %s' %(mode,str(D.shape),str(shape)))
                 self._jacobian = torch.zeros(shape)
                 self._jacobian.requires_grad_(False)
-                
+        
+        # if numpy, make torch
+        D = D if isinstance(D,torch.Tensor) else torch.from_numpy(D)
+
         # update
         if mode == 'batch':
             pass
@@ -77,11 +80,14 @@ class JTensor(object):
     def __repr__(self):
         return 'JTensor containing:\n' + self.data.__repr__()
 
-    def jacobian(self,in_grad = None,mode='sum',backend='pytorch'):
+    def jacobian(self,in_grad = None,mode='sum',backend=None):
         if in_grad is None:
             N = self.data.shape[0]
             d = self.data.shape[1]
             in_grad = torch.eye(d).unsqueeze(0).repeat(N,1,1)
+        if backend is None:
+            backend = 'pytorch' if isinstance(in_grad,torch.Tensor) else 'numpy'
+
         if backend == 'pytorch':
             in_grad = in_grad if isinstance(in_grad,torch.Tensor) else torch.from_numpy(in_grad)
         elif backend == 'numpy':
