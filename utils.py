@@ -27,6 +27,7 @@ def experiment_argparser():
     parser.add_argument('--seed', type=int, default=543, metavar='N',help='random seed (default: 1)')
     parser.add_argument('--damping', type=float, default=1e-1, metavar='G',help='damping (default: 1e-1)')
     parser.add_argument('-a','--alg',type=str, default='TRPO', metavar='G',help='algorithm to use')
+    parser.add_argument('-b','--backend',type=str, default='numpy', metavar='G',help='backend to use for Jacobian')
     return parser
 
 def train_config_from_args(args):
@@ -37,6 +38,7 @@ def train_config_from_args(args):
                          'l2_pen' : args.l2_pen,
                          'lr' : args.lr,
                          'damping' : args.damping,
+                         'backend' : args.backend,
                          # 'policy' : args.policy,
                          'seed' : args.seed,
                          'num_updates' : int(args.num_updates),

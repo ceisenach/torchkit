@@ -7,25 +7,26 @@ logger = logging.getLogger(__name__)
 
 import utils as ut
 
-def conjugate_gradients(Avp, b, nsteps, damping, residual_tol=1e-10, grad=True):
+def conjugate_gradients(Avp, b, nsteps, damping, residual_tol=1e-10, grad=True, backend='pytorch'):
     with torch.set_grad_enabled(grad):
-        x = torch.zeros(b.size())
-        r = b.clone()
-        p = b.clone()
-        rdotr = torch.dot(r, r)
+        x = torch.zeros(b.shape) if backend == 'pytorch' else np.zeros(b.shape)
+        df = torch.dot if backend == 'pytorch' else np.dot
+        r = b.clone() if backend == 'pytorch' else b.copy()
+        p = b.clone() if backend == 'pytorch' else b.copy()
+
+        rdotr = df(r, r)
         for i in range(nsteps):
             _Avp = Avp(p) + p * damping
-            alpha = rdotr / torch.dot(p, _Avp)
+            alpha = rdotr / df(p, _Avp)
             x += alpha * p
             r -= alpha * _Avp
-            new_rdotr = torch.dot(r, r)
+            new_rdotr = df(r, r)
             betta = new_rdotr / rdotr
             p = r + betta * p
             rdotr = new_rdotr
             if rdotr < residual_tol:
                 break
         return x
-
 
 
 def backtracking_ls(model,f,x,fullstep,expected_improve_rate,max_backtracks=10,accept_ratio=.1):
