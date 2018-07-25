@@ -71,3 +71,4 @@ class AlgorithmBase(object):
 # Import commonly used names
 from .trpo import TRPO
 from .nac import NACGauss
+from .a2c import A2C

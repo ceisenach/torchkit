@@ -53,6 +53,8 @@ if __name__ == '__main__':
         algo = algorithm.TRPO(plc,critic_net,train_config)
     elif train_config['alg'] == 'NAC':
         algo = algorithm.NACGauss(plc,critic_net,train_config)
+    elif train_config['alg'] == 'A2C':
+        algo = algorithm.A2C(plc,critic_net,train_config)
     else:
         raise RuntimeError('Algorithm not found')
 
