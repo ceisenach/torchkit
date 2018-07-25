@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import copy
+import numpy as np
 
 from . import util as util
 
@@ -28,12 +30,22 @@ class JParameter(nn.Parameter):
     def __repr__(self):
         return 'JParameter containing:\n' + super(JParameter, self).__repr__()
 
-    def zero_jacobian_(self):
+    def zero_jacobian_(self,backend='pytorch'):
         self.__jacobian_ready = False
         if self._jacobian is not None:
-            self._jacobian = self._jacobian.detach()
-            self._jacobian.requires_grad_(False)
-            self._jacobian.zero_()
+            # self._jacobian = self._jacobian.detach()
+            # self._jacobian.requires_grad_(False)
+            if backend == 'pytorch':
+                if isinstance(self._jacobian,torch.Tensor):
+                    self._jacobian.zero_()
+                    self._jacobian = self._jacobian.detach()
+                else:
+                    self._jacobian = None
+            else:
+                if isinstance(self._jacobian,np.ndarray):
+                    self._jacobian.fill(0.)
+                else:
+                    self._jacobian = None
 
     def update_jacobian_(self,D,mode):
         # check if its already been updated at least once
@@ -41,22 +53,31 @@ class JParameter(nn.Parameter):
             shape = D.shape if mode=='batch' else D.shape[1:] if mode=='sum' else None
             if not (self._jacobian is not None and self._jacobian.shape == shape):
                 # print('Mode: %s. D shape: %s. J shape: %s' %(mode,str(D.shape),str(shape)))
-                self._jacobian = torch.zeros(shape)
-                self._jacobian.requires_grad_(False)
-        
-        # if numpy, make torch
-        D = D if isinstance(D,torch.Tensor) else torch.from_numpy(D)
+                if isinstance(D,torch.Tensor):
+                    self._jacobian = torch.zeros(shape)
+                    self._jacobian.requires_grad_(False)
+                else:
+                    self._jacobian = np.zeros(shape)
 
-        # update
-        if mode == 'batch':
-            pass
-        elif mode == 'sum':
-            D = torch.sum(D,dim=0)
+        if isinstance(D,torch.Tensor):
+            D = D.detach()
+            if mode == 'batch':
+                pass
+            elif mode == 'sum':
+                D = torch.sum(D,dim=0)
+            else:
+                raise RuntimeError('Undefined Behavior')
+            self._jacobian.add_(D.data) # need to make sure not to tie up computation graph
         else:
-            raise RuntimeError('Undefined Behavior')
-        D = D.detach()
-        D.requires_grad_(False)
-        self._jacobian.add_(D.data) # need to make sure not to tie up computation graph
+            if mode == 'batch':
+                pass
+            elif mode == 'sum':
+                D = np.sum(D,axis=0)
+            else:
+                raise RuntimeError('Undefined Behavior')
+
+            self._jacobian += D
+
         self.__jacobian_ready = True
 
 
@@ -67,7 +88,12 @@ class JParameter(nn.Parameter):
     @property
     def jacobian(self):
         return self._jacobian
-    
+
+    @property
+    def jacobian_numpy(self):
+        if self._jacobian is not None:
+            return copy.deepcopy(self._jacobian.numpy()) if isinstance(self._jacobian,torch.Tensor) else copy.deepcopy(self._jacobian)
+        return None
 
 
 class JTensor(object):

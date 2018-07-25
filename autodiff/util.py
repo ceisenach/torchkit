@@ -1,12 +1,13 @@
 import torch
 import numpy as np
+import copy
 
 ##########################################################
 ### Utility Functions
 ##########################################################
-def zero_jacobian(param_list):
+def zero_jacobian(param_list,backend='pytorch'):
     for p in param_list:
-        p.zero_jacobian_()
+        p.zero_jacobian_(backend)
 
 def zero_grad(param_list):
     for p in param_list:
@@ -15,15 +16,28 @@ def zero_grad(param_list):
             p.grad.zero_()
 
 
-def gather_jacobian(param_list):
-    pjs = []
-    for p in param_list:
-        pj = p.jacobian
-        if pj is not None:
-            pjs.append(pj)
+def gather_jacobian(param_list,backend='pytorch'):
+    if backend == 'pytorch':
+        pjs = []
+        for p in param_list:
+            pj = copy.deepcopy(p.jacobian)
+            if pj is not None:
+                pjs.append(pj.detach())
 
-    jacobian = torch.cat(pjs,dim=-1)
-    return jacobian
+        jacobian = torch.cat(pjs,dim=-1)
+        return jacobian
+    else:
+        pjs = []
+        for p in param_list:
+            # pj = copy.copy(p.jacobian)
+            pj = p.jacobian
+            if pj is not None:
+                pj = np.copy(pj)
+                pjs.append(pj)
+
+        jacobian = np.concatenate(pjs,axis=-1)
+        del pjs
+        return jacobian
 
 
 def gather_grad(param_list):

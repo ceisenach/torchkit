@@ -4,6 +4,7 @@ import os
 import argparse
 import time
 import math
+import copy
 
 def make_directory(dirpath):
     os.makedirs(dirpath,exist_ok=True)
@@ -105,31 +106,42 @@ class MultiRingBuffer(object):
         return self.dataList
 
 # from ikostrikov
-def get_flat_params_from(model):
+def get_flat_params_from(model,backend='pytorch'):
     params = []
     for param in model.parameters():
-        params.append(param.data.view(-1))
+        if backend == 'pytorch':
+            params.append(param.data.view(-1))
+        else:
+            params.append(param.data.view(-1).numpy())
 
-    flat_params = torch.cat(params)
+    flat_params = torch.cat(params) if backend == 'pytorch' else np.concatenate(params,axis=0)
     return flat_params
 
-def set_flat_params_to(model, flat_params):
+def set_flat_params_to(model,flat_params):
     prev_ind = 0
+    flat_params = flat_params if isinstance(flat_params,torch.Tensor) else torch.from_numpy(flat_params)
     for param in model.parameters():
         flat_size = int(np.prod(list(param.size())))
+
         param.data.copy_(
             flat_params[prev_ind:prev_ind + flat_size].view(param.size()))
         prev_ind += flat_size
 
-def get_flat_grad_from(net, grad_grad=False):
+def get_flat_grad_from(net, grad_grad=False,backend='pytorch'):
     grads = []
     for param in net.parameters():
-        if grad_grad:
-            grads.append(param.grad.grad.view(-1))
+        if backend == 'pytorch':
+            if grad_grad:
+                grads.append(param.grad.grad.view(-1))
+            else:
+                grads.append(param.grad.contiguous().view(-1))
         else:
-            grads.append(param.grad.view(-1))
+            if grad_grad:
+                grads.append(copy.copy(param.grad.grad.view(-1).numpy()))
+            else:
+                grads.append(copy.copy(param.grad.contiguous().view(-1).numpy()))
 
-    flat_grad = torch.cat(grads)
+    flat_grad = torch.cat(grads).data if backend == 'pytorch' else np.concatenate(grads,axis=0)
     return flat_grad
 
 

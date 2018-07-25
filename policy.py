@@ -2,6 +2,7 @@
 import torch
 from torch.autograd import Variable
 import math
+import numpy as np
 
 import autodiff as ad
 import utils as ut
@@ -74,37 +75,32 @@ class GaussianPolicy(BasePolicy):
         return action_mean.detach()
 
 
-    def fi2(self,states):
-        N = states.shape[0]
-        ad.util.zero_jacobian(self._net.parameters())
-        act_mean, act_log_std = self._net(states,save_for_jacobian=True)
-        act_mean.jacobian(mode='batch',backend='numpy')
-        # Dmu = ad.util.gather_jacobian(self._net.parameters())
-        # act_mean, act_log_std = self._net(states)
-        Dmu = torch.randn(N,self._net._num_outputs,ut.total_params(self._net)-self._net._num_outputs)
-        return act_mean,act_log_std,Dmu
-
-    def fisher_information(self,states,batch_approx=False,jacobian_precompute = None):
+    def fisher_information(self,states,batch_approx=False,backend='pytorch'):
         # with torch.autograd.no_grad():
         assert states.dim() == 2, "States should be 2D"
         if batch_approx is True:
             raise RuntimeError('Not implemented yet')
 
+        with torch.no_grad():
+            fi = None
+            if backend == 'pytorch':
+                fi = self._fisher_information_torch(states,batch_approx)
+            else:
+                fi = self._fisher_information_numpy(states,batch_approx)
+
+            return fi
+
+    def _fisher_information_torch(self,states,batch_approx):
         N = states.shape[0]
-        # import pdb; pdb.set_trace()
 
         # Step 1 -- get Jacobian
         act_mean,act_log_std,Dmu = None,None,None
-        if jacobian_precompute is None:
-            # ad.util.zero_jacobian(self._net.parameters())
-            # act_mean, act_log_std = self._net(states,save_for_jacobian=True)
-            # act_mean.jacobian(mode='batch')
-            # Dmu = ad.util.gather_jacobian(self._net.parameters())
-            act_mean, act_log_std = self._net(states)
-            Dmu = torch.randn(N,self._net._num_outputs,ut.total_params(self._net)-self._net._num_outputs)
-        else:
-            act_mean,act_log_std,Dmu = jacobian_precompute['act_mean'], \
-            jacobian_precompute['act_log_std'],jacobian_precompute['Dmu']
+        ad.util.zero_jacobian(self._net.parameters())
+        act_mean, act_log_std = self._net(states,save_for_jacobian=True)
+        act_mean.jacobian(mode='batch')
+        Dmu = ad.util.gather_jacobian(self._net.parameters())
+        # act_mean, act_log_std = self._net(states)
+        # Dmu = torch.randn(N,self._net._num_outputs,ut.total_params(self._net)-self._net._num_outputs)
 
         # Step 2 -- pre-compute products
         act_mean = act_mean.data
@@ -122,24 +118,53 @@ class GaussianPolicy(BasePolicy):
         # return {'DmuT':DmuT,'Ig_11_Dmu':Ig_11_Dmu,'EI_22d':EI_22d}
         return DmuT.detach(),Ig_11_Dmu.detach(),EI_22d.detach()
 
+    def _fisher_information_numpy(self,states,batch_approx):
+        N = states.shape[0]
+
+        # Step 1 -- get Jacobian
+        act_mean,act_log_std,Dmu = None,None,None
+        ad.util.zero_jacobian(self._net.parameters(),backend='numpy')
+        act_mean, act_log_std = self._net(states,save_for_jacobian=True)
+        act_mean.jacobian(mode='batch',backend='numpy')
+        Dmu = ad.util.gather_jacobian(self._net.parameters(),backend='numpy')
+
+        act_log_std = act_log_std.detach().numpy()
+        act_std = np.exp(act_log_std[0])
+        act_std_inv = 1./act_std
+        act_std_inv2 = act_std_inv ** 2
+
+        Ig_11 = np.expand_dims(act_std_inv,axis=1)
+        Ig_11 = np.expand_dims(Ig_11,axis=0)
+
+        Ig_11 = np.tile(Ig_11,(Dmu.shape[0],1,Dmu.shape[2]))
+
+        Ig_11_Dmu = Ig_11 * Dmu #OK 
+        EI_22d = 0.5 * act_std_inv2 #OK
+        DmuT = np.transpose(Dmu,(0,2,1)) #OK
+
+        return DmuT,Ig_11_Dmu,EI_22d
+
 
     # def fisher_vector_product(self,fisher_info,v):
     #     DmuT,Ig_11_Dmu,EI_22d = fisher_info['DmuT'],fisher_info['Ig_11_Dmu'],fisher_info['EI_22d']
     def fisher_vector_product(self,DmuT,Ig_11_Dmu,EI_22d,v):
-        with torch.autograd.no_grad():
-            N,d_1,d_2 = DmuT.shape
-            v1 = v[:d_1]
-            v2 = v[d_1:]
+        DmuT = DmuT if isinstance(DmuT,torch.Tensor) else torch.from_numpy(DmuT)
+        Ig_11_Dmu = Ig_11_Dmu if isinstance(Ig_11_Dmu,torch.Tensor) else torch.from_numpy(Ig_11_Dmu)
+        EI_22d = EI_22d if isinstance(EI_22d,torch.Tensor) else torch.from_numpy(EI_22d)
 
-            # calculate upper partition
-            v1batched = v1.unsqueeze(0).expand(N,d_1)
-            g1 = torch.bmm(Ig_11_Dmu,v1batched.unsqueeze(-1))
-            g1 = torch.bmm(DmuT,g1)
-            g1 = (1./N) * torch.sum(g1,dim=0).squeeze()
+        N,d_1,d_2 = DmuT.shape
+        v1 = v[:d_1]
+        v2 = v[d_1:]
 
-            # calculate lower partition
-            g2 = EI_22d * v2
+        # calculate upper partition
+        v1batched = v1.unsqueeze(0).expand(N,d_1)
+        g1 = torch.bmm(Ig_11_Dmu,v1batched.unsqueeze(-1))
+        g1 = torch.bmm(DmuT,g1)
+        g1 = (1./N) * torch.sum(g1,dim=0).squeeze()
 
-            # combine and return
-            g = torch.cat([g1,g2],dim=0)
-            return g
+        # calculate lower partition
+        g2 = EI_22d * v2
+
+        # combine and return
+        g = torch.cat([g1,g2],dim=0)
+        return g

@@ -80,16 +80,13 @@ class Linear(Module):
             I_oT = util.bkron(I,o)
             in_grad = np.matmul(I,self.weight.data.numpy())
 
-
         # STEP 3 - Do updates
         self.weight.update_jacobian_(I_oT,mode)
         if self.bias is not None:
             self.bias.update_jacobian_(I,mode)
 
-
         # STEP 4 - call Jacobian on inputs
         if isinstance(input,JTensor):
-            print(type(in_grad))
             input.jacobian(in_grad,mode)
         else:
             logger.debug('Compute graph leaf')
