@@ -17,6 +17,7 @@ def experiment_argparser():
     parser.add_argument("-u",'--num_updates', type=float, default=1e4, help="number of gradient updates")
     parser.add_argument("-g","--gamma", type=float, default=0.99, help="discount factor")
     parser.add_argument("-N", type=int, default=15000, help="Batch Size")
+    parser.add_argument("-V", '--num-env', type=int, default=1, help="Num Env")
     parser.add_argument("-s",'--save_interval', type=float, default=1e3, help="Model Save Interval")
     parser.add_argument("-l",'--log_interval', type=int, default=50, help="Log Interval")
     parser.add_argument("-E",'--env', type=str, default="BipedalWalker-v2", help="Environment to use")
@@ -39,6 +40,7 @@ def train_config_from_args(args):
                          'lr' : args.lr,
                          'damping' : args.damping,
                          'backend' : args.backend,
+                         'num_env' : args.num_env,
                          # 'policy' : args.policy,
                          'seed' : args.seed,
                          'num_updates' : int(args.num_updates),

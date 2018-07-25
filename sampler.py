@@ -70,3 +70,33 @@ class Sampler(object):
             
         batch = self._experience_buffer.get_data()
         return batch,crs
+
+
+
+class BatchSampler(object):
+    """
+    Sample from multiple independent copies of the same environment.
+    """
+    def __init__(self,policy,**kwargs):
+        self._samplers = []
+        for i in range(kwargs['num_env']):
+            smp = Sampler(policy,**kwargs)
+            self._samplers.append(smp)
+
+    def sample(self):
+        """
+        Get multiple minibatches of samples
+        """
+        bl,crs = [],[]
+        for smp in self._samplers:
+            b,c = smp.sample()
+            bl.append(b)
+            crs = crs + c
+        return bl,crs
+
+    def reset(self):
+        """
+        Resets underlying environment objects
+        """
+        for smp in self._samplers:
+            smp.reset()
