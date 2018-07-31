@@ -11,12 +11,10 @@ class AlgorithmBase(object):
         self._actor = policy.net
         self._critic = critic
 
-
     def _batch_prepare(self,batch):
         raise NotImplementedError()
 
-
-    def _batch_prepare_full_gae(self,batch):
+    def _batch_prepare_gae_full_trajectory(self,batch):
         """
         compute advantages for each batch using GAE on full trajectories -- could be high variance
         """
@@ -41,11 +39,25 @@ class AlgorithmBase(object):
             prev_value = values.data[i, 0]
             prev_advantage = advantages[i, 0]
 
-
         advantages = (advantages - advantages.mean()) / advantages.std()
-
         return states,actions,returns,advantages
 
+    def _batch_prepare_advantages(self,batch):
+        # Compute advantages
+        with torch.no_grad():
+            S,A,M,R = batch
+            N = S.shape[0]
+            r_tp1 = R[:-1].view(-1,1)
+
+            G = torch.zeros(N,1) # Bootstrapped Returns
+            V = self._critic(S) # Value estimates
+            G[-1,:] = V[-1]
+
+            for i in range(N-1):
+                G[N-i-2,:] = r_tp1[N-i-2,:] + self._args['gamma'] * G[N-i-1,:] * M[N-i-2,:]
+            G = G[:-1]
+            U = G - V[:-1] # Advantages
+            return S[:-1],A[:-1],G,U
 
     def _batch_merge(self,batch_list):
         """
