@@ -6,19 +6,20 @@ import numpy as np
 import torch
 import logging
 logger = logging.getLogger(__name__)
-
+import gym
 
 import sampler
 import algorithm
 import utils
 import model
-import gym
+import environment
 import policy
 
 torch.utils.backcompat.broadcast_warning.enabled = True
 torch.utils.backcompat.keepdim_warning.enabled = True
 
-torch.set_default_tensor_type('torch.DoubleTensor')
+# torch.set_default_tensor_type('torch.DoubleTensor')
+torch.set_default_tensor_type('torch.FloatTensor')
 
 if __name__ == '__main__':
     #############################
@@ -41,7 +42,7 @@ if __name__ == '__main__':
     env = gym.make(train_config['env'])
     num_inputs = env.observation_space.shape[0]
     num_actions = env.action_space.shape[0]
-    torch.manual_seed(train_config['seed'])
+    # torch.manual_seed(train_config['seed'])
 
     actor_net = model.Policy(num_inputs, num_actions)
     critic_net = model.Value(num_inputs)
@@ -62,7 +63,6 @@ if __name__ == '__main__':
     cumulative_rewards = np.array([]).reshape((0,3))
     cur_update = 0
     finished_episodes = 0
-
     while cur_update < train_config['num_updates']:
         batch,crs = sampler.sample()
         algo.update(batch)

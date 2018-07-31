@@ -74,7 +74,6 @@ class GaussianPolicy(BasePolicy):
             return action.detach()
         return action_mean.detach()
 
-
     def fisher_information(self,states,batch_approx=False,backend='pytorch'):
         # with torch.autograd.no_grad():
         assert states.dim() == 2, "States should be 2D"

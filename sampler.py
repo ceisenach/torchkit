@@ -25,9 +25,13 @@ class Sampler(object):
         self._policy = policy
         self._N = kwargs['N']
         self._gamma = kwargs['gamma']
-        self._experience_buffer = MultiRingBuffer(exp_shapes,self._N+1,tensor_type=torch.DoubleTensor)
+        # self._experience_buffer = MultiRingBuffer(exp_shapes,self._N+1,tensor_type=torch.DoubleTensor)
+        self._experience_buffer = MultiRingBuffer(exp_shapes,self._N+1,tensor_type=torch.FloatTensor)
         self._running_state = ZFilter((env.observation_space.shape[0],), clip=5)
         self._running_reward = ZFilter((1,), demean=False, clip=10)
+        self._cr = 0.0
+        self._terminal = False
+        self._t = 0
 
     def sample(self):
         """
@@ -35,28 +39,26 @@ class Sampler(object):
         """
         self._experience_buffer.reset()
         crs = []
-        s_t_numpy = self._base_env.reset()
-        t = 0
-        cr = 0
+        s_t_numpy = self._base_env.state
         num_steps = 0
-        terminal = False
 
         while num_steps < self._N:
-            if terminal:
+            if self._terminal:
                 s_t_numpy = self._base_env.reset()
-                crs.append(cr)
-                cr,t = 0,0
+                crs.append(self._cr)
+                self._cr,self._t = 0,0
+                self._terminal = False
 
             # take step
-            s_t_numpy = self._running_state(s_t_numpy)
+            # s_t_numpy = self._running_state(s_t_numpy)
             s_t = torch.from_numpy(s_t_numpy)
             a_t = self._policy.action(s_t)
             a_t_numpy = a_t.numpy()
-            s_tp1_numpy, r_tp1_f, terminal, _ = self._base_env.step(a_t_numpy)
-            cr += (self._gamma**t)*r_tp1_f
+            s_tp1_numpy, r_tp1_f, self._terminal, _ = self._base_env.step(a_t_numpy)
+            self._cr += (self._gamma**self._t)*r_tp1_f
 
             # terminal state mask
-            m_t_f = 0 if terminal else 1
+            m_t_f = 0 if self._terminal else 1
 
             # append to buffer
             m_t = _torch_from_float(m_t_f)
@@ -65,12 +67,16 @@ class Sampler(object):
 
             # increment
             s_t_numpy = s_tp1_numpy
-            t += 1
+            self._t += 1
             num_steps += 1
             
         batch = self._experience_buffer.get_data()
         return batch,crs
 
+    def reset(self):
+        self._base_env.reset()
+        self._cr,self._t = 0,0
+        self._terminal = False
 
 
 class BatchSampler(object):
