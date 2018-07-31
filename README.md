@@ -29,3 +29,8 @@ More examples
 ```
  python bin/train.py -V 1 -N 10 --ack "{'hidden_layers' :  2}" --lr 0.01  -u 1e4  -co
 ```
+
+Make time series plot
+```
+python bin/plot.py -d out/experiment_2018.07.31_18.32.44/ -p tseries
+```
