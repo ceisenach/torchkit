@@ -8,11 +8,11 @@ import numpy as np
 class RunningStat(object):
     def __init__(self, shape):
         self._n = 0
-        self._M = np.zeros(shape)
-        self._S = np.zeros(shape)
+        self._M = np.zeros(shape,dtype=np.float32)
+        self._S = np.zeros(shape,dtype=np.float32)
 
     def push(self, x):
-        x = np.asarray(x)
+        x = np.asarray(x,dtype=np.float32)
         assert x.shape == self._M.shape
         self._n += 1
         if self._n == 1:
@@ -32,7 +32,7 @@ class RunningStat(object):
 
     @property
     def var(self):
-        return self._S / (self._n - 1) if self._n > 1 else np.square(self._M)
+        return self._S / (self._n - 1) if self._n > 1 else np.square(self._M,dtype=np.float32)
 
     @property
     def std(self):
