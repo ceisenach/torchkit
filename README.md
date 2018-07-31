@@ -25,3 +25,7 @@ Contains script to run training, e.g.
 ```
 python bin/train.py --co -N 100
 ```
+More examples
+```
+ python bin/train.py -V 1 -N 10 --ack "{'hidden_layers' :  2}" --lr 0.01  -u 1e4  -co
+```

@@ -5,6 +5,8 @@ import argparse
 import time
 import math
 import copy
+import ast
+
 
 def make_directory(dirpath):
     os.makedirs(dirpath,exist_ok=True)
@@ -13,6 +15,7 @@ def experiment_argparser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
     parser.add_argument("-o", "--odir", type=str, default=None, help="output directory")
+    parser.add_argument("-d", "--debug", action="store_true", help="debug")
     # parser.add_argument("-p",'--policy' ,type=str, default='angular', help="policy type to use")
     parser.add_argument("-u",'--num_updates', type=float, default=1e4, help="number of gradient updates")
     parser.add_argument("-g","--gamma", type=float, default=0.99, help="discount factor")
@@ -29,6 +32,8 @@ def experiment_argparser():
     parser.add_argument('--damping', type=float, default=1e-1, metavar='G',help='damping (default: 1e-1)')
     parser.add_argument('-a','--alg',type=str, default='TRPO', metavar='G',help='algorithm to use')
     parser.add_argument('-b','--backend',type=str, default='numpy', metavar='G',help='backend to use for Jacobian')
+    parser.add_argument("--ack",  type=str,default=None, help="kwargs for acnet")
+
     return parser
 
 def train_config_from_args(args):
@@ -41,6 +46,8 @@ def train_config_from_args(args):
                          'damping' : args.damping,
                          'backend' : args.backend,
                          'num_env' : args.num_env,
+                         'ac_kwargs': get_kwargs(args.ack),
+                         'debug' : args.debug,
                          # 'policy' : args.policy,
                          'seed' : args.seed,
                          'num_updates' : int(args.num_updates),
@@ -52,6 +59,12 @@ def train_config_from_args(args):
 
     return experiment_config
 
+
+def get_kwargs(arg_str):
+    if arg_str is not None:
+        kwargs = ast.literal_eval(arg_str)
+        return kwargs
+    return {}
 
 class MultiRingBuffer(object):
     """

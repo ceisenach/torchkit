@@ -47,7 +47,7 @@ class Platform2D(gym.Env):
         self.observation_space = spaces.Box(self.BOUND_LOW, self.BOUND_HIGH, dtype=np.float32)
 
         # initial state config
-        self._reset()
+        self.reset()
 
     def change_reward(self,**kwargs):
         if 'REWARD_MULT' in kwargs:
@@ -55,7 +55,7 @@ class Platform2D(gym.Env):
         if 'OOB_MULT' in kwargs:
             self.OOB_MULT = kwargs['OOB_MULT']
 
-    def _step(self, action):
+    def step(self, action):
         """
         The agent takes a step in the environment.
         Parameters
@@ -125,7 +125,7 @@ class Platform2D(gym.Env):
             logger.debug('Time %d -- Normed Action: (%.3E,%.3E)' % tuple([self.time] + list(norm_action)))
             logger.debug('Time %d -- New Location: (%.3E,%.3E)' % tuple([self.time] + list(new_location)))
 
-    def _reset(self):
+    def reset(self):
         """
         Reset the state of the environment and returns an initial observation.
         Returns
@@ -144,7 +144,6 @@ class Platform2D(gym.Env):
     def _render(self, mode='human', close=False):
         return
 
-    def _seed(self, seed):
-        # random.seed(seed)
-        # np.random.seed()
-        pass
+    def seed(self, seed):
+        random.seed(seed)
+        np.random.seed(seed)

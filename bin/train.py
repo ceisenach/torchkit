@@ -7,6 +7,7 @@ import torch
 import logging
 logger = logging.getLogger(__name__)
 import gym
+import json
 
 import sampler
 import algorithm
@@ -30,9 +31,13 @@ if __name__ == '__main__':
     cumulative_reward_path = os.path.join(train_config['odir'],'cr.npy')
 
     utils.make_directory(train_config['odir'])
+    with open(os.path.join(train_config['odir'],'train_config.json'), 'w') as fp:
+        json.dump(train_config, fp, sort_keys=True, indent=4)
+
+    log_level = logging.DEBUG if train_config['debug'] else logging.INFO
     if not train_config['console']:     
         logging.basicConfig(filename=os.path.join(train_config['odir'],'log_main.log'),
-                level=logging.INFO,
+                level=log_level,
                 format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',)
     else:
         logging.basicConfig(level=logging.INFO)
@@ -42,10 +47,10 @@ if __name__ == '__main__':
     env = gym.make(train_config['env'])
     num_inputs = env.observation_space.shape[0]
     num_actions = env.action_space.shape[0]
-    # torch.manual_seed(train_config['seed'])
+    torch.manual_seed(train_config['seed'])
 
-    actor_net = model.Policy(num_inputs, num_actions)
-    critic_net = model.Value(num_inputs)
+    actor_net = model.Policy(num_inputs, num_actions,**train_config['ac_kwargs'])
+    critic_net = model.Value(num_inputs,**train_config['ac_kwargs'])
     plc = policy.GaussianPolicy(actor_net)
 
     ###############################
@@ -63,6 +68,8 @@ if __name__ == '__main__':
     cumulative_rewards = np.array([]).reshape((0,3))
     cur_update = 0
     finished_episodes = 0
+    sampler.reset()
+
     while cur_update < train_config['num_updates']:
         batch,crs = sampler.sample()
         algo.update(batch)

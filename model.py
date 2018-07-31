@@ -1,50 +1,49 @@
-# from ikostrikov
-
 import torch
-# import torch.nn as nn
+import torch.nn.init as init
 import autodiff.functional as F
 import autodiff.modules as nn
 
 
-class Policy(nn.Module):
-    def __init__(self, num_inputs, num_outputs):
-        super(Policy, self).__init__()
-        self.affine1 = nn.Linear(num_inputs, 64)
-        self.affine2 = nn.Linear(64, 64)
+# Original TRPO uses 2 hidden layers with width 64
 
-        self.action_mean = nn.Linear(64, num_outputs)
-        self.action_mean.weight.data.mul_(0.1)
-        self.action_mean.bias.data.mul_(0.0)
+class FFNet(nn.Module):
+    def __init__(self,in_size,out_size=1,width=32,hidden_layers = 2,**kwargs):
+        super(FFNet, self).__init__()
+        self._hidden_layers = hidden_layers
+        self._layer_name = 'affine_%d'
 
-        self.action_log_std = nn.Parameter(data=torch.zeros(num_outputs))
-        self._num_outputs = num_outputs
-        self._num_inputs = num_inputs
+        # add layers
+        for i in range(self._hidden_layers):
+            layer_in = in_size if i == 0 else width
+            self.add_module(self._layer_name % i, nn.Linear(layer_in, width))
 
+        # initialize layers
+        for i in range(self._hidden_layers):
+            layer_module = getattr(self,self._layer_name % i)
+            init.xavier_uniform_(layer_module.weight)
+            init.constant_(layer_module.bias,0.)
 
-    def forward(self, x,save_for_jacobian=False,**kwargs):
-        x = self.affine1(x,save_for_jacobian)
-        x = F.tanh(x,save_for_jacobian)
-        x = self.affine2(x,save_for_jacobian)
-        x = F.tanh(x,save_for_jacobian)
-        action_mean = self.action_mean(x,save_for_jacobian)
-        action_log_std = self.action_log_std.expand_as(action_mean.data)
+        # output layer
+        self.affine_out = nn.Linear(width, out_size)
+        init.xavier_uniform_(self.affine_out.weight)
+        init.constant_(self.affine_out.bias,0.)
 
-        return action_mean, action_log_std
-        
+    def forward(self,x,save_for_jacobian=False,**kwargs):
+        for i in range(self._hidden_layers):
+            x = F.tanh(getattr(self,self._layer_name % i)(x,save_for_jacobian),save_for_jacobian)
+        x = self.affine_out(x,save_for_jacobian)
+        return x
 
+# Alias
+Value = FFNet
 
-class Value(nn.Module):
-    def __init__(self, num_inputs):
-        super(Value, self).__init__()
-        self.affine1 = nn.Linear(num_inputs, 64)
-        self.affine2 = nn.Linear(64, 64)
-        self.value_head = nn.Linear(64, 1)
-        self.value_head.weight.data.mul_(0.1)
-        self.value_head.bias.data.mul_(0.0)
+class Policy(FFNet):
+    def __init__(self,in_size,out_size,width=32,hidden_layers = 2,**kwargs):
+        super(Policy, self).__init__(in_size,out_size,width,hidden_layers,**kwargs)
+        self.action_log_std = nn.Parameter(data=torch.zeros(out_size))
 
-    def forward(self, x):
-        x = F.tanh(self.affine1(x))
-        x = F.tanh(self.affine2(x))
+    def forward(self,x,save_for_jacobian=False,**kwargs):
+        out = super(Policy,self).forward(x,save_for_jacobian,**kwargs)
+        action_log_std = self.action_log_std.expand_as(out.data)
 
-        state_values = self.value_head(x)
-        return state_values
+        return out, action_log_std
