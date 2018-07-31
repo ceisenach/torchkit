@@ -33,6 +33,7 @@ class Sampler(object):
         self._terminal = False
         self._t = 0
         self._s_t_numpy = None
+        self._debug = kwargs['debug']
 
     def sample(self):
         """
@@ -51,14 +52,18 @@ class Sampler(object):
                 self._terminal = False
 
             # take step
-            # s_t_numpy = self._running_state(s_t_numpy)
+            s_t_numpy = self._running_state(s_t_numpy)
             s_t = torch.from_numpy(s_t_numpy).float()
             a_t = self._policy.action(s_t)
             a_t_numpy = a_t.numpy()
             try:
                 s_tp1_numpy, r_tp1_f, self._terminal, _ = self._base_env.step(a_t_numpy)
-            except:
-                import pdb; pdb.set_trace()
+            except Exception as e:
+                if self._debug:
+                    import pdb; pdb.set_trace()
+                else:
+                    raise e
+
             self._cr += (self._gamma**self._t)*r_tp1_f
 
             # terminal state mask

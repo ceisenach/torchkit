@@ -34,8 +34,13 @@ class NACGauss(AlgorithmBase):
             fi = self._policy.fisher_information(S_t,backend=self._args['backend'])
             FVP = lambda v : self._policy.fisher_vector_product(*fi,v,backend=self._args['backend'])
             stepdir = opt.conjugate_gradients(FVP, lg, 10, self._args['damping'],grad=False,backend=self._args['backend'])
+            if np.isnan(stepdir).any() and self._args['debug']:
+                import pdb; pdb.set_trace()
             stepdir = stepdir if isinstance(stepdir,torch.Tensor) else torch.from_numpy(stepdir)
             prev_params = ut.get_flat_params_from(self._actor)
+            # # weight decay
+            # l2_pen = 0.01
+            # stepdir = stepdir + l2_pen * prev_params
             new_params = prev_params - self._args['lr'] * stepdir
             ut.set_flat_params_to(self._actor, new_params)
 
