@@ -66,7 +66,6 @@ class GaussianPolicy(BasePolicy):
     def action(self,s_t,sample=True):
         # if sample:
         #     self._net.eval()
-
         action_mean,action_log_std = self._net(s_t)
         action_std = torch.exp(action_log_std)
         if sample:

@@ -32,6 +32,7 @@ class Sampler(object):
         self._cr = 0.0
         self._terminal = False
         self._t = 0
+        self._s_t_numpy = None
 
     def sample(self):
         """
@@ -39,7 +40,7 @@ class Sampler(object):
         """
         self._experience_buffer.reset()
         crs = []
-        s_t_numpy = self._base_env.state
+        s_t_numpy = self._s_t_numpy
         num_steps = 0
 
         while num_steps < self._N:
@@ -51,10 +52,13 @@ class Sampler(object):
 
             # take step
             # s_t_numpy = self._running_state(s_t_numpy)
-            s_t = torch.from_numpy(s_t_numpy)
+            s_t = torch.from_numpy(s_t_numpy).float()
             a_t = self._policy.action(s_t)
             a_t_numpy = a_t.numpy()
-            s_tp1_numpy, r_tp1_f, self._terminal, _ = self._base_env.step(a_t_numpy)
+            try:
+                s_tp1_numpy, r_tp1_f, self._terminal, _ = self._base_env.step(a_t_numpy)
+            except:
+                import pdb; pdb.set_trace()
             self._cr += (self._gamma**self._t)*r_tp1_f
 
             # terminal state mask
@@ -70,11 +74,12 @@ class Sampler(object):
             self._t += 1
             num_steps += 1
             
+        self._s_t_numpy = s_t_numpy
         batch = self._experience_buffer.get_data()
         return batch,crs
 
     def reset(self):
-        self._base_env.reset()
+        self._s_t_numpy = self._base_env.reset()
         self._cr,self._t = 0,0
         self._terminal = False
 

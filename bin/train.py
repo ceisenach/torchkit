@@ -16,12 +16,6 @@ import model
 import environment
 import policy
 
-torch.utils.backcompat.broadcast_warning.enabled = True
-torch.utils.backcompat.keepdim_warning.enabled = True
-
-# torch.set_default_tensor_type('torch.DoubleTensor')
-torch.set_default_tensor_type('torch.FloatTensor')
-
 if __name__ == '__main__':
     #############################
     # SETUP
