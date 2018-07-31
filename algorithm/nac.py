@@ -15,8 +15,9 @@ class NACGauss(AlgorithmBase):
     def __init__(self,policy,critic,args,**kwargs):
         super(NACGauss,self).__init__(policy,critic,args,**kwargs)
         self._updates = 0
-        self._batch_prepare = self._batch_prepare_advantages
-        self._critic_optimizer = torch.optim.SGD(self._critic.parameters(), lr=args['lr'])
+        # self._batch_prepare = self._batch_prepare_advantages
+        self._batch_prepare = self._batch_prepare_gae_full_trajectory
+        self._critic_optimizer = torch.optim.SGD(self._critic.parameters(), lr=10*args['lr'])
 
 
     def _actor_update(self,S_t,A_t_hat,U_t):
