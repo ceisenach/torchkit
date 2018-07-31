@@ -121,7 +121,6 @@ class GaussianPolicy(BasePolicy):
         act_mean, act_log_std = self._net(states,save_for_jacobian=True)
         act_mean.jacobian(mode='batch',backend='numpy')
         Dmu = ad.util.gather_jacobian(self._net.parameters(),backend='numpy')
-
         act_log_std = act_log_std.detach().numpy()
         act_std = np.exp(act_log_std[0])
         act_std_inv = 1./act_std

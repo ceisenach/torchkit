@@ -57,7 +57,7 @@ class JParameter(nn.Parameter):
                     self._jacobian = torch.zeros(shape)
                     self._jacobian.requires_grad_(False)
                 else:
-                    self._jacobian = np.zeros(shape)
+                    self._jacobian = np.zeros(shape,dtype=np.float32)
 
         if isinstance(D,torch.Tensor):
             D = D.detach()

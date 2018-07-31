@@ -9,7 +9,7 @@ import utils as ut
 
 def conjugate_gradients(Avp, b, nsteps, damping, residual_tol=1e-10, grad=True, backend='pytorch'):
     with torch.set_grad_enabled(grad):
-        x = torch.zeros(b.shape) if backend == 'pytorch' else np.zeros(b.shape)
+        x = torch.zeros(b.shape) if backend == 'pytorch' else np.zeros(b.shape,dtype=np.float32)
         df = torch.dot if backend == 'pytorch' else np.dot
         r = b.clone() if backend == 'pytorch' else b.copy()
         p = b.clone() if backend == 'pytorch' else b.copy()

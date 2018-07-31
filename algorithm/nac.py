@@ -15,7 +15,7 @@ class NACGauss(AlgorithmBase):
     def __init__(self,policy,critic,args,**kwargs):
         super(NACGauss,self).__init__(policy,critic,args,**kwargs)
         self._updates = 0
-        self._batch_prepare = self._batch_prepare_gae_full_trajectory
+        self._batch_prepare = self._batch_prepare_advantages
         self._critic_optimizer = torch.optim.SGD(self._critic.parameters(), lr=args['lr'])
 
 
@@ -23,7 +23,7 @@ class NACGauss(AlgorithmBase):
         lg = None
         with torch.enable_grad():
             # Get loss gradient
-            lf_actor = torch.mean(U_t.view(-1) * self._policy.nll(A_t_hat,S_t))
+            lf_actor = torch.mean(U_t.view(-1) * self._policy.nll(A_t_hat,S_t.detach()))
             grads = torch.autograd.grad(lf_actor, self._policy.parameters())
             lg = torch.cat([grad.view(-1) for grad in grads]).data
             lg = lg if self._args['backend'] == 'pytorch' else lg.numpy()
@@ -50,7 +50,7 @@ class NACGauss(AlgorithmBase):
             return
 
         S_t,A_t_hat,G_t,U_t = batch
-        V_t = self._critic(S_t)
+        V_t = self._critic(S_t.detach())
 
         # critic update
         lf_critic = torch.mean((G_t - V_t)**2)
