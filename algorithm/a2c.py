@@ -2,6 +2,7 @@ import torch
 
 from . import AlgorithmBase
 
+__all__ = ['A2C']
 
 class A2C(AlgorithmBase):
     """

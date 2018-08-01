@@ -17,37 +17,9 @@ class AlgorithmBase(object):
     def _batch_prepare_gae_full_trajectory_norm(self,batch):
         return self._batch_prepare_gae_full_trajectory(batch,normalize=True)
 
-    # def _batch_prepare_gae_full_trajectory(self,batch,normalize=False):
-    #     """
-    #     compute advantages for each batch using GAE on full trajectories -- could be high variance
-    #     """
-    #     value_net,gamma,tau = self._critic, self._args['gamma'], self._args['tau']
-    #     states,actions,masks,rewards = batch
-    #     rewards,masks = rewards.view(-1),masks.view(-1)
-    #     values = value_net(states)
-
-    #     returns = torch.Tensor(actions.size(0),1)
-    #     deltas = torch.Tensor(actions.size(0),1)
-    #     advantages = torch.Tensor(actions.size(0),1)
-
-    #     prev_return = 0
-    #     prev_value = 0
-    #     prev_advantage = 0
-    #     for i in reversed(range(rewards.size(0))):
-    #         returns[i] = rewards[i] + gamma * prev_return * masks[i]
-    #         deltas[i] = rewards[i] + gamma * prev_value * masks[i] - values.data[i]
-    #         advantages[i] = deltas[i] + gamma * tau * prev_advantage * masks[i]
-
-    #         prev_return = returns[i, 0]
-    #         prev_value = values.data[i, 0]
-    #         prev_advantage = advantages[i, 0]
-    #     if normalize:
-    #         advantages = (advantages - advantages.mean()) / advantages.std()
-    #     return states,actions,returns,advantages
-
     def _batch_prepare_gae_full_trajectory(self,batch,normalize=False):
         """
-        compute advantages for each batch using GAE on full trajectories
+        compute advantages for each batch using GAE on full trajectories. G is TD(0) return
         """
         with torch.no_grad():
             value_net,gamma,tau = self._critic, self._args['gamma'], self._args['tau']
@@ -69,6 +41,29 @@ class AlgorithmBase(object):
             S,A,G,U = S[:-1],A[:-1],G[:-1],U[:-1]
             if normalize:
                 U = (U - U.mean()) / U.std()
+            return S,A,G,U
+
+    def _batch_prepare_gae_lambda_return(self,batch):
+        """
+        compute advantages for each batch using GAE on full trajectories and also return TD(lambda) return
+        instead of TD(0) return. Analogous to TRPO_MPI in baselines
+        """
+        with torch.no_grad():
+            value_net,gamma,tau = self._critic, self._args['gamma'], self._args['tau']
+            S,A,M,R = batch
+            R,M = R.view(-1,1),M.view(-1,1)
+            V = self._critic(S).view(-1,1)
+            N = S.shape[0]
+
+            delta = torch.zeros(N,1)
+            U = torch.zeros(N,1)
+
+            for i in range(N-1):
+                delta[N-i-2,:] = R[N-i-2,:] + self._args['gamma'] * V[N-i-1,:] * M[N-i-2,:] - V[N-i-2,:]
+                U[N-i-2,:] = delta[N-i-2,:] + self._args['gamma'] * self._args['tau'] * U[N-i-1,:] * M[N-i-2,:]
+
+            S,A,U = S[:-1],A[:-1],U[:-1]
+            G = U + V[:-1,:]
             return S,A,G,U
 
     def _batch_prepare_advantages(self,batch):
@@ -111,6 +106,6 @@ class AlgorithmBase(object):
 
 ###########################################
 # Import commonly used names
-from .trpo import TRPO
-from .nac import NACGauss
-from .a2c import A2C
+from .trpo import *
+from .nac import *
+from .a2c import *

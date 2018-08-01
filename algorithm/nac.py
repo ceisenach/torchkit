@@ -7,6 +7,7 @@ import optimize as opt
 import utils as ut
 import gc
 
+__all__ = ['NACGauss']
 
 class NACGauss(AlgorithmBase):
     """

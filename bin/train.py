@@ -51,6 +51,8 @@ if __name__ == '__main__':
     # CREATE ENVIRONMENT AND RUN
     if train_config['alg'] == 'TRPO':
         algo = algorithm.TRPO(plc,critic_net,train_config)
+    elif train_config['alg'] == 'TRPO_v2':
+        algo = algorithm.TRPO_v2(plc,critic_net,train_config)
     elif train_config['alg'] == 'NAC':
         algo = algorithm.NACGauss(plc,critic_net,train_config)
     elif train_config['alg'] == 'A2C':

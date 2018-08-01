@@ -32,7 +32,8 @@ def experiment_argparser():
     parser.add_argument('--damping', type=float, default=1e-1, metavar='G',help='damping (default: 1e-1)')
     parser.add_argument('-a','--alg',type=str, default='TRPO', metavar='G',help='algorithm to use')
     parser.add_argument('-b','--backend',type=str, default='numpy', metavar='G',help='backend to use for Jacobian')
-    parser.add_argument("--ack",  type=str,default=None, help="kwargs for acnet")
+    parser.add_argument("--nk",  type=str,default=None, help="kwargs for actor and critic nets")
+    # parser.add_argument("--ak",  type=str,default=None, help="algorithm kwargs for actor and critic nets")
 
     return parser
 
@@ -46,7 +47,7 @@ def train_config_from_args(args):
                          'damping' : args.damping,
                          'backend' : args.backend,
                          'num_env' : args.num_env,
-                         'ac_kwargs': get_kwargs(args.ack),
+                         'ac_kwargs': get_kwargs(args.nk),
                          'debug' : args.debug,
                          # 'policy' : args.policy,
                          'seed' : args.seed,
