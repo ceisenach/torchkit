@@ -28,7 +28,7 @@ class TRPO(AlgorithmBase):
     def __init__(self,policy,critic,args,**kwargs):
         super(TRPO,self).__init__(policy,critic,args,**kwargs)
         self._updates = 0
-        self._batch_prepare = self._batch_prepare_gae_full_trajectory
+        self._batch_prepare = self._batch_prepare_gae_full_trajectory_norm
 
 
     def _trpo_step(self, get_loss, get_kl, max_kl, damping):

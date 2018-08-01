@@ -14,33 +14,62 @@ class AlgorithmBase(object):
     def _batch_prepare(self,batch):
         raise NotImplementedError()
 
-    def _batch_prepare_gae_full_trajectory(self,batch):
+    def _batch_prepare_gae_full_trajectory_norm(self,batch):
+        return self._batch_prepare_gae_full_trajectory(batch,normalize=True)
+
+    # def _batch_prepare_gae_full_trajectory(self,batch,normalize=False):
+    #     """
+    #     compute advantages for each batch using GAE on full trajectories -- could be high variance
+    #     """
+    #     value_net,gamma,tau = self._critic, self._args['gamma'], self._args['tau']
+    #     states,actions,masks,rewards = batch
+    #     rewards,masks = rewards.view(-1),masks.view(-1)
+    #     values = value_net(states)
+
+    #     returns = torch.Tensor(actions.size(0),1)
+    #     deltas = torch.Tensor(actions.size(0),1)
+    #     advantages = torch.Tensor(actions.size(0),1)
+
+    #     prev_return = 0
+    #     prev_value = 0
+    #     prev_advantage = 0
+    #     for i in reversed(range(rewards.size(0))):
+    #         returns[i] = rewards[i] + gamma * prev_return * masks[i]
+    #         deltas[i] = rewards[i] + gamma * prev_value * masks[i] - values.data[i]
+    #         advantages[i] = deltas[i] + gamma * tau * prev_advantage * masks[i]
+
+    #         prev_return = returns[i, 0]
+    #         prev_value = values.data[i, 0]
+    #         prev_advantage = advantages[i, 0]
+    #     if normalize:
+    #         advantages = (advantages - advantages.mean()) / advantages.std()
+    #     return states,actions,returns,advantages
+
+    def _batch_prepare_gae_full_trajectory(self,batch,normalize=False):
         """
-        compute advantages for each batch using GAE on full trajectories -- could be high variance
+        compute advantages for each batch using GAE on full trajectories
         """
-        value_net,gamma,tau = self._critic, self._args['gamma'], self._args['tau']
-        states,actions,masks,rewards = batch
-        rewards,masks = rewards.view(-1),masks.view(-1)
-        values = value_net(states)
+        with torch.no_grad():
+            value_net,gamma,tau = self._critic, self._args['gamma'], self._args['tau']
+            S,A,M,R = batch
+            R,M = R.view(-1,1),M.view(-1,1)
+            V = self._critic(S).view(-1,1)
+            N = S.shape[0]
 
-        returns = torch.Tensor(actions.size(0),1)
-        deltas = torch.Tensor(actions.size(0),1)
-        advantages = torch.Tensor(actions.size(0),1)
+            G = torch.zeros(N,1) # Bootstrapped Returns
+            delta = torch.zeros(N,1)
+            U = torch.zeros(N,1)
 
-        prev_return = 0
-        prev_value = 0
-        prev_advantage = 0
-        for i in reversed(range(rewards.size(0))):
-            returns[i] = rewards[i] + gamma * prev_return * masks[i]
-            deltas[i] = rewards[i] + gamma * prev_value * masks[i] - values.data[i]
-            advantages[i] = deltas[i] + gamma * tau * prev_advantage * masks[i]
+            G[-1,:] = V[-1,:]
+            for i in range(N-1):
+                G[N-i-2,:] = R[N-i-2,:] + self._args['gamma'] * G[N-i-1,:] * M[N-i-2,:]
+                delta[N-i-2,:] = R[N-i-2,:] + self._args['gamma'] * V[N-i-1,:] * M[N-i-2,:] - V[N-i-2,:]
+                U[N-i-2,:] = delta[N-i-2,:] + self._args['gamma'] * self._args['tau'] * U[N-i-1,:] * M[N-i-2,:]
 
-            prev_return = returns[i, 0]
-            prev_value = values.data[i, 0]
-            prev_advantage = advantages[i, 0]
-
-        advantages = (advantages - advantages.mean()) / advantages.std()
-        return states,actions,returns,advantages
+            S,A,G,U = S[:-1],A[:-1],G[:-1],U[:-1]
+            if normalize:
+                U = (U - U.mean()) / U.std()
+            return S,A,G,U
 
     def _batch_prepare_advantages(self,batch):
         # Compute advantages
@@ -64,6 +93,7 @@ class AlgorithmBase(object):
         merge independent batches together -- should always return a 4-tuple
         """
         if not isinstance(batch_list[0],list):
+            import pdb; pdb.set_trace()
             return self._batch_prepare(batch_list)
         S,A,R,U = [],[],[],[]
         for b in filter(lambda bt: bt[0] is not None, batch_list):
