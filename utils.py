@@ -25,7 +25,7 @@ def experiment_argparser():
     parser.add_argument("-l",'--log_interval', type=int, default=50, help="Log Interval")
     parser.add_argument("-E",'--env', type=str, default="BipedalWalker-v2", help="Environment to use")
     parser.add_argument("-co", "--console", action="store_true", help="log to console")
-    parser.add_argument('--tau', type=float, default=0.97, metavar='G',help='gae (default: 0.97)')
+    parser.add_argument('--tau', type=float, default=0.98, metavar='G',help='gae (default: 0.97)')
     parser.add_argument('--l2_pen', type=float, default=1e-3, metavar='G',help='l2 regularization regression (default: 1e-3)')
     parser.add_argument('--max_kl', type=float, default=1e-2, metavar='G',help='max kl value (default: 1e-2)')
     parser.add_argument('--seed', type=int, default=543, metavar='N',help='random seed (default: 1)')
