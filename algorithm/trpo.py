@@ -109,7 +109,8 @@ class TRPO_v2(AlgorithmBase):
         stepdir = opt.conjugate_gradients(Fvp, -loss_grad, 10, damping)
 
         # originally:      shs = 0.5 * (stepdir * (Fvp(stepdir)+damping*stepdir)).sum(0, keepdim=True)
-        shs = 0.5 * (stepdir * Fvp(stepdir)).sum(0, keepdim=True)
+        # shs = 0.5 * (stepdir * Fvp(stepdir)).sum(0, keepdim=True)
+        shs = 0.5 * (stepdir * (Fvp(stepdir)+damping*stepdir)).sum(0, keepdim=True)
 
         lm = torch.sqrt(shs / max_kl)
         fullstep = stepdir / lm[0]
