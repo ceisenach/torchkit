@@ -25,6 +25,21 @@ def fisher_vector_product(get_kl,v,model):
 
     return flat_grad_grad_kl
 
+def explained_variance(ypred,y):
+    """
+    Computes fraction of variance that ypred explains about y.
+    Returns 1 - Var[y-ypred] / Var[y]
+
+    interpretation:
+        ev=0  =>  might as well have predicted zero
+        ev=1  =>  perfect prediction
+        ev<0  =>  worse than just predicting zero
+
+    """
+    assert y.dim() == 1 and ypred.dim() == 1
+    vary = torch.std(y).item()
+    return np.nan if vary==0 else 1 - (torch.std(y-ypred).item()/vary)**2
+
 
 class TRPO(AlgorithmBase):
     """
@@ -146,18 +161,23 @@ class TRPO_v2(AlgorithmBase):
             return
 
         S_t,A_t,G_t,U_t = batch
+        logger.info('Explained Variance VF Before: %0.5f' % explained_variance(self._critic(S_t).view(-1),G_t.view(-1)))
 
         # update value net
         self._critic_update(S_t,G_t)
 
-        fixed_log_prob = -self._policy.nll(A_t,S_t).data.clone()
-
         # get_loss, get_kl needed to reconstruct graph for higher order gradients
+        with torch.no_grad():
+            fixed_log_prob = -self._policy.nll(A_t,S_t)
+            output_old = self._actor(S_t)
+
         def get_loss(volatile=False):
             log_prob = -self._policy.nll(A_t,S_t)
             action_loss = - U_t.view(-1) * torch.exp(log_prob - fixed_log_prob)
             return action_loss.mean()
 
-        get_kl = lambda : self._policy.kl_divergence(S_t)
+        get_kl = lambda : self._policy.kl_divergence(S_t,*output_old)
 
+        # do actor step
         self._trpo_step(get_loss, get_kl, self._args['max_kl'], self._args['damping'])
+        logger.info('Mean KL: %0.5f' % get_kl().mean().item())

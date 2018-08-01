@@ -57,13 +57,13 @@ class FFNet_base(nn.Module):
         # initialize layers
         for i in range(self._hidden_layers):
             layer_module = getattr(self,self._layer_name % i)
-            normc_initializer(layer_module.weight,init_std,axis=0)
-            normc_initializer(layer_module.bias,init_std,axis=0)
+            normc_initializer(layer_module.weight,init_std,axis=-1)
+            normc_initializer(layer_module.bias,init_std,axis=-1)
 
         # output layer
         self.affine_out = nn.Linear(width, out_size)
-        normc_initializer(self.affine_out.weight,init_std,axis=0)
-        normc_initializer(self.affine_out.bias,init_std,axis=0)
+        normc_initializer(self.affine_out.weight,init_std,axis=-1)
+        normc_initializer(self.affine_out.bias,init_std,axis=-1)
 
 
     def forward(self,x,save_for_jacobian=False,**kwargs):
@@ -84,8 +84,8 @@ class Policy(FFNet_base):
         self.action_log_std = nn.Parameter(data=torch.zeros(out_size))
 
         #override output init
-        normc_initializer(self.affine_out.weight,0.01,axis=0)
-        normc_initializer(self.affine_out.bias,0.01,axis=0)
+        normc_initializer(self.affine_out.weight,0.01,axis=-1)
+        normc_initializer(self.affine_out.bias,0.01,axis=-1)
 
     def forward(self,x,save_for_jacobian=False,**kwargs):
         out = super(Policy,self).forward(x,save_for_jacobian,**kwargs)

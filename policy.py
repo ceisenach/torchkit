@@ -41,14 +41,12 @@ class GaussianPolicy(BasePolicy):
     def __init__(self,acnet,**kwargs):
         super(GaussianPolicy,self).__init__(acnet,**kwargs)
 
-    def kl_divergence(self,states):
-        # states = states.detach()
+    def kl_divergence(self,states,mean0,log_std0):
+        std0 = torch.exp(log_std0).detach()
+
         mean1, log_std1 = self._net(Variable(states))
         std1 = torch.exp(log_std1)
 
-        mean0 = Variable(mean1.data)
-        log_std0 = Variable(log_std1.data)
-        std0 = Variable(std1.data)
         kl = log_std1 - log_std0 + (std0.pow(2) + (mean0 - mean1).pow(2)) / (2.0 * std1.pow(2)) - 0.5
         return kl.sum(1, keepdim=True)
 
