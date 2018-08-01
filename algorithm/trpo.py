@@ -160,7 +160,8 @@ class TRPO_v2(AlgorithmBase):
         if batch is None:
             return
 
-        S_t,A_t,G_t,U_t = batch
+        S_t,A_t,G_t,U_t_un = batch
+        U_t = (U_t_un - U_t_un.mean()) / U_t_un.std()
         logger.info('Explained Variance VF Before: %0.5f' % explained_variance(self._critic(S_t).view(-1),G_t.view(-1)))
 
         # update value net
