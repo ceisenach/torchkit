@@ -98,6 +98,7 @@ class TRPO_v2(AlgorithmBase):
         self._batch_prepare = self._batch_prepare_gae_lambda_return
         # self._critic_optimizer = torch.optim.SGD(self._critic.parameters(), lr=1e-3)
         self._critic_optimizer = torch.optim.Adam(self._critic.parameters(), lr=1e-3)
+        print(ut.get_flat_params_from(self._actor).sum().item())
 
     def _trpo_step(self, get_loss, get_kl, max_kl, damping):
         model = self._actor
@@ -111,16 +112,15 @@ class TRPO_v2(AlgorithmBase):
 
         # originally:      shs = 0.5 * (stepdir * (Fvp(stepdir)+damping*stepdir)).sum(0, keepdim=True)
         # shs = 0.5 * (stepdir * Fvp(stepdir)).sum(0, keepdim=True)
-        shs = 0.5 * (stepdir * (Fvp(stepdir)+damping*stepdir)).sum(0, keepdim=True)
+        shs = 0.5 * (stepdir * (Fvp(stepdir)+damping*stepdir)).sum(0)
 
         lm = torch.sqrt(shs / max_kl)
-        fullstep = stepdir / lm[0]
-
-        neggdotstepdir = (-loss_grad * stepdir).sum(0, keepdim=True)
-        logger.info('lagrange multiplier %s, grad norm: %s' % (str(lm[0]),str(loss_grad.norm())))
+        fullstep = stepdir / lm.item()
+        expected_improve = (-loss_grad * stepdir).sum(0, keepdim=True)
+        logger.info('lagrange multiplier %5.3g, grad norm: %5.3g' % (lm.item(),loss_grad.norm().item()))
 
         prev_params = ut.get_flat_params_from(model)
-        success, new_params = opt.backtracking_ls(model, get_loss, prev_params, fullstep, neggdotstepdir / lm[0])
+        success, new_params = opt.backtracking_ls2(model, get_loss, prev_params, fullstep, expected_improve, get_kl, 1.5 * max_kl)
         ut.set_flat_params_to(model, new_params)
 
         return loss

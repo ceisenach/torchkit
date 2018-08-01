@@ -7,15 +7,20 @@ logger = logging.getLogger(__name__)
 
 import utils as ut
 
-def conjugate_gradients(Avp, b, nsteps, damping, residual_tol=1e-10, grad=True, backend='pytorch'):
+def conjugate_gradients(Avp, b, nsteps, damping, residual_tol=1e-10, grad=True, backend='pytorch',verbose=True):
     with torch.set_grad_enabled(grad):
         x = torch.zeros(b.shape) if backend == 'pytorch' else np.zeros(b.shape,dtype=np.float32)
         df = torch.dot if backend == 'pytorch' else np.dot
         r = b.clone() if backend == 'pytorch' else b.copy()
         p = b.clone() if backend == 'pytorch' else b.copy()
 
+        fmtstr =  "%10i %10.3g %10.3g"
+        titlestr =  "%10s %10s %10s"
+        if verbose: print(titlestr % ("iter", "residual norm", "soln norm"))
+
         rdotr = df(r, r)
         for i in range(nsteps):
+            if verbose: print(fmtstr % (i, rdotr, torch.norm(x)))
             _Avp = Avp(p) + p * damping
             alpha = rdotr / df(p, _Avp)
             x += alpha * p
@@ -26,6 +31,7 @@ def conjugate_gradients(Avp, b, nsteps, damping, residual_tol=1e-10, grad=True, 
             rdotr = new_rdotr
             if rdotr < residual_tol:
                 break
+        if verbose: print(fmtstr % (i+1, rdotr, np.linalg.norm(x)))
         return x
 
 
@@ -43,6 +49,29 @@ def backtracking_ls(model,f,x,fullstep,expected_improve_rate,max_backtracks=10,a
 
         if ratio.item() > accept_ratio and actual_improve.item() > 0:
             logger.info('fval after: %0.5f'%newfval.item())
+            return True, xnew
+    return False, x
+
+
+def backtracking_ls2(model,f,x,fullstep,expected_improve,get_constraint,constraint_max,max_backtracks=10):
+    fval = f(True).data
+    logger.info('fval before: %0.5f'%fval.item())
+    for (_n_backtracks, stepfrac) in enumerate(.5**np.arange(max_backtracks)):
+        xnew = x + stepfrac * fullstep
+        ut.set_flat_params_to(model, xnew)
+        newfval = f(True).data
+        actual_improve = fval - newfval
+        # expected_improve = expected_improve_rate * stepfrac
+
+        cv = get_constraint().mean().item()
+        logger.info('a/e/cv: %0.5f, %0.5f, %0.5f' % (actual_improve.item(), expected_improve.item(),cv))
+        if cv > constraint_max:
+            import pdb; pdb.set_trace()
+            logger.info('KL Violated %0.5f' % get_constraint().item())
+        elif actual_improve.item() < 0:
+            logger.info('No Improvement')
+        else:
+            logger.info('Done -- fval after: %0.5f'%newfval.item())
             return True, xnew
     return False, x
 
