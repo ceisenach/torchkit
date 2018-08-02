@@ -86,14 +86,14 @@ class TestAutoDiff(ExtendedTestCase):
         j_N_t = ad.util.gather_jacobian(net.parameters())
 
         # Numpy backend
-        ad.util.zero_jacobian(net.parameters())
+        ad.util.zero_jacobian(net.parameters(),backend='numpy')
         net_out = net(data,save_for_jacobian=True)
         net_out.jacobian(mode='batch',backend='numpy')
-        j_N_n = ad.util.gather_jacobian(net.parameters())
+        j_N_n = ad.util.gather_jacobian(net.parameters(),backend='numpy')
 
         # Compare
         j_t = torch.sum(j_N_t,dim=0)
-        j_n = torch.sum(j_N_n,dim=0)
+        j_n = torch.sum(torch.from_numpy(j_N_n),dim=0)
         self.assertTensorClose(j_t.view(-1),j_n.view(-1))
 
 
