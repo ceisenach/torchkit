@@ -40,8 +40,43 @@ def explained_variance(ypred,y):
     vary = torch.std(y).item()
     return np.nan if vary==0 else 1 - (torch.std(y-ypred).item()/vary)**2
 
+class TRPOBase(AlgorithmBase):
 
-class TRPO(AlgorithmBase):
+    def update(self,batch_list):
+        """
+        Update the actor and critic net from sampled minibatches
+        """
+        batch = self._batch_merge(batch_list)
+        if batch is None:
+            return
+
+        S_t,A_t,G_t,U_t_un = batch
+        U_t = (U_t_un - U_t_un.mean()) / U_t_un.std()
+        logger.debug('Explained Variance VF Before: %0.5f' % explained_variance(self._critic(S_t).view(-1),G_t.view(-1)))
+
+        # update value net
+        self._critic_update(S_t,G_t)
+
+        # get_loss, get_kl needed to reconstruct graph for higher order gradients
+        with torch.no_grad():
+            fixed_log_prob = -self._policy.nll(A_t,S_t)
+            output_old = self._actor(S_t)
+
+        def get_loss(volatile=False):
+            log_prob = -self._policy.nll(A_t,S_t)
+            action_loss = - U_t.view(-1) * torch.exp(log_prob - fixed_log_prob)
+            return action_loss.mean()
+
+        get_kl = lambda : self._policy.kl_divergence(S_t,*output_old)
+
+        # do actor step
+        self._trpo_step(get_loss, get_kl, self._args['max_kl'], self._args['damping'])
+        logger.debug('Mean KL: %0.5f' % get_kl().mean().item())
+
+
+
+
+class TRPO(TRPOBase):
     """
     TRPO. Original implementation from TRPO paper. Pytorch version of code found in
     John Shulman's modular_rl repository on github.
@@ -59,12 +94,8 @@ class TRPO(AlgorithmBase):
         loss_grad = torch.cat([grad.view(-1) for grad in grads]).data
 
         Fvp = lambda v : fisher_vector_product(get_kl,v,model)
-
         stepdir = opt.conjugate_gradients(Fvp, -loss_grad, 10, damping)
-
-        # originally:      shs = 0.5 * (stepdir * (Fvp(stepdir)+damping*stepdir)).sum(0, keepdim=True)
-        shs = 0.5 * (stepdir * Fvp(stepdir)).sum(0, keepdim=True)
-
+        shs = 0.5 * (stepdir * (Fvp(stepdir)+damping*stepdir)).sum(0)
         lm = torch.sqrt(shs / max_kl).item()
         fullstep = stepdir / lm
 
@@ -77,37 +108,12 @@ class TRPO(AlgorithmBase):
 
         return loss
 
-
-    def update(self,batch_list):
-        """
-        Update the actor and critic net from sampled minibatches
-        """
-        batch = self._batch_merge(batch_list)
-        if batch is None:
-            return
-
-        S_t,A_t,G_t,U_t_un = batch
-        U_t = (U_t_un - U_t_un.mean()) / U_t_un.std()
-
-        # update value net
+    def _critic_update(self,S_t,G_t):
         opt.l_bfgs(opt.l2_loss_l2_reg,self._critic,S_t,G_t,self._args['l2_pen'])
 
-        # get_loss, get_kl needed to reconstruct graph for higher order gradients
-        with torch.no_grad():
-            fixed_log_prob = -self._policy.nll(A_t,S_t)
-            output_old = self._actor(S_t)
-
-        def get_loss(volatile=False):
-            log_prob = -self._policy.nll(A_t,S_t)
-            action_loss = - U_t.view(-1) * torch.exp(log_prob - fixed_log_prob)
-            return action_loss.mean()
-
-        get_kl = lambda : self._policy.kl_divergence(S_t,*output_old)
-
-        self._trpo_step(get_loss, get_kl, self._args['max_kl'], self._args['damping'])
 
 
-class TRPO_v2(AlgorithmBase):
+class TRPO_v2(TRPOBase):
     """
     TRPO: Pytorch version of TRPO as implemented in TRPO_MPI in OpenAI Baselines.
     """
@@ -149,35 +155,3 @@ class TRPO_v2(AlgorithmBase):
                 self._critic_optimizer.zero_grad()
                 lf_critic.backward()
                 self._critic_optimizer.step()
-
-
-    def update(self,batch_list):
-        """
-        Update the actor and critic net from sampled minibatches
-        """
-        batch = self._batch_merge(batch_list)
-        if batch is None:
-            return
-
-        S_t,A_t,G_t,U_t_un = batch
-        U_t = (U_t_un - U_t_un.mean()) / U_t_un.std()
-        logger.debug('Explained Variance VF Before: %0.5f' % explained_variance(self._critic(S_t).view(-1),G_t.view(-1)))
-
-        # update value net
-        self._critic_update(S_t,G_t)
-
-        # get_loss, get_kl needed to reconstruct graph for higher order gradients
-        with torch.no_grad():
-            fixed_log_prob = -self._policy.nll(A_t,S_t)
-            output_old = self._actor(S_t)
-
-        def get_loss(volatile=False):
-            log_prob = -self._policy.nll(A_t,S_t)
-            action_loss = - U_t.view(-1) * torch.exp(log_prob - fixed_log_prob)
-            return action_loss.mean()
-
-        get_kl = lambda : self._policy.kl_divergence(S_t,*output_old)
-
-        # do actor step
-        self._trpo_step(get_loss, get_kl, self._args['max_kl'], self._args['damping'])
-        logger.debug('Mean KL: %0.5f' % get_kl().mean().item())
