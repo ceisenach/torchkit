@@ -49,16 +49,12 @@ if __name__ == '__main__':
 
     ###############################
     # CREATE ENVIRONMENT AND RUN
-    if train_config['alg'] == 'TRPO':
-        algo = algorithm.TRPO(plc,critic_net,train_config)
-    elif train_config['alg'] == 'TRPO_v2':
-        algo = algorithm.TRPO_v2(plc,critic_net,train_config)
-    elif train_config['alg'] == 'NAC':
-        algo = algorithm.NACGauss(plc,critic_net,train_config)
-    elif train_config['alg'] == 'A2C':
-        algo = algorithm.A2C(plc,critic_net,train_config)
-    else:
-        raise RuntimeError('Algorithm not found')
+    algo = None
+    try:
+        algo_class = getattr(algorithm,train_config['alg'])
+        algo = algo_class(plc,critic_net,train_config)
+    except AttributeError as e:
+        raise RuntimeError('Algorithm "%s" not found' % train_config['alg'])
 
     sampler = sampler.BatchSampler(plc,**train_config)
     episode_results = np.array([]).reshape((0,5))
