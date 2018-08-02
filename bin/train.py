@@ -21,7 +21,7 @@ if __name__ == '__main__':
     # SETUP
     parser = utils.experiment_argparser()
     args = parser.parse_args()
-    train_config = utils.train_config_from_args(args)
+    train_config = utils.train_params_from_args(args)
     cumulative_reward_path = os.path.join(train_config['odir'],'cr.npy')
 
     utils.make_directory(train_config['odir'])
@@ -34,7 +34,7 @@ if __name__ == '__main__':
                 level=log_level,
                 format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',)
     else:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=log_level)
 
     ###############################
     # MAKE NET AND POLICY

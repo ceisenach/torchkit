@@ -33,11 +33,10 @@ def experiment_argparser():
     parser.add_argument('-a','--alg',type=str, default='TRPO', metavar='G',help='algorithm to use')
     parser.add_argument('-b','--backend',type=str, default='numpy', metavar='G',help='backend to use for Jacobian')
     parser.add_argument("--nk",  type=str,default=None, help="kwargs for actor and critic nets")
-    parser.add_argument("--tr",  type="store_false", help="store total reward instead of CDR")
 
     return parser
 
-def train_config_from_args(args):
+def train_params_from_args(args):
     experiment_config = {'gamma' : args.gamma,
                          'alg' : args.alg,
                          'tau' : args.tau,
@@ -59,6 +58,17 @@ def train_config_from_args(args):
                          'save_interval' : int(args.save_interval)}
 
     return experiment_config
+
+
+def run_config_from_args(args):
+    experiment_config = {'backend' : args.backend,
+                         'debug' : args.debug,
+                         'console' : args.console,
+                         'odir' : args.odir if args.odir is not None else 'out/experiment_%s' % time.strftime("%Y.%m.%d_%H.%M.%S"),
+                         'save_interval' : int(args.save_interval)}
+
+    return experiment_config
+
 
 
 def get_kwargs(arg_str):

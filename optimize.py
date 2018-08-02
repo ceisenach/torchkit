@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 import utils as ut
 
-def conjugate_gradients(Avp, b, nsteps, damping, residual_tol=1e-10, grad=True, backend='pytorch',verbose=True):
+def conjugate_gradients(Avp, b, nsteps, damping, residual_tol=1e-10, grad=True, backend='pytorch'):
     with torch.set_grad_enabled(grad):
         x = torch.zeros(b.shape) if backend == 'pytorch' else np.zeros(b.shape,dtype=np.float32)
         df = torch.dot if backend == 'pytorch' else np.dot
@@ -16,11 +16,11 @@ def conjugate_gradients(Avp, b, nsteps, damping, residual_tol=1e-10, grad=True, 
 
         fmtstr =  "%10i %10.3g %10.3g"
         titlestr =  "%10s %10s %10s"
-        if verbose: print(titlestr % ("iter", "residual norm", "soln norm"))
+        logger.debug(titlestr % ("iter", "residual norm", "soln norm"))
 
         rdotr = df(r, r)
         for i in range(nsteps):
-            if verbose: print(fmtstr % (i, rdotr, torch.norm(x)))
+            logger.debug(fmtstr % (i, rdotr, torch.norm(x)))
             _Avp = Avp(p) + p * damping
             alpha = rdotr / df(p, _Avp)
             x += alpha * p
@@ -31,13 +31,14 @@ def conjugate_gradients(Avp, b, nsteps, damping, residual_tol=1e-10, grad=True, 
             rdotr = new_rdotr
             if rdotr < residual_tol:
                 break
-        if verbose: print(fmtstr % (i+1, rdotr, np.linalg.norm(x)))
+        logger.debug(fmtstr % (i+1, rdotr, np.linalg.norm(x)))
         return x
 
 
-def backtracking_ls(model,f,x,fullstep,expected_improve_rate,max_backtracks=10,accept_ratio=.1):
+
+def backtracking_ls_ratio(model,f,x,fullstep,expected_improve_rate,max_backtracks=10,accept_ratio=.1):
     fval = f(True).data
-    logger.info('fval before: %0.5f'%fval.item())
+    logger.debug('fval before: %0.5f'%fval.item())
     for (_n_backtracks, stepfrac) in enumerate(.5**np.arange(max_backtracks)):
         xnew = x + stepfrac * fullstep
         ut.set_flat_params_to(model, xnew)
@@ -45,35 +46,36 @@ def backtracking_ls(model,f,x,fullstep,expected_improve_rate,max_backtracks=10,a
         actual_improve = fval - newfval
         expected_improve = expected_improve_rate * stepfrac
         ratio = actual_improve / expected_improve
-        logger.info('a/e/r: %0.5f, %0.5f, %0.5f' % (actual_improve.item(), expected_improve.item(), ratio.item()))
+        logger.debug('Backtrack iter %d: a/e/r: %0.5f, %0.5f, %0.5f' % (_n_backtracks,actual_improve.item(), expected_improve.item(), ratio.item()))
 
         if ratio.item() > accept_ratio and actual_improve.item() > 0:
-            logger.info('fval after: %0.5f'%newfval.item())
+            logger.debug('Backtrack iter %d: Done -- fval after: %0.5f' % (_n_backtracks, newfval.item()))
             return True, xnew
     return False, x
 
 
-def backtracking_ls2(model,f,x,fullstep,expected_improve,get_constraint,constraint_max,max_backtracks=10):
+
+def backtracking_ls(model,f,x,fullstep,expected_improve,get_constraint = lambda x : -1,constraint_max = 0,max_backtracks=10):
     fval = f(True).data
-    logger.info('fval before: %0.5f'%fval.item())
+    logger.debug('fval before: %0.5f'%fval.item())
     for (_n_backtracks, stepfrac) in enumerate(.5**np.arange(max_backtracks)):
         xnew = x + stepfrac * fullstep
         ut.set_flat_params_to(model, xnew)
         newfval = f(True).data
         actual_improve = fval - newfval
-        # expected_improve = expected_improve_rate * stepfrac
-
-        cv = get_constraint().mean().item()
-        logger.info('a/e/cv: %0.5f, %0.5f, %0.5f' % (actual_improve.item(), expected_improve.item(),cv))
-        if cv > constraint_max:
+        cv = get_constraint().mean().item() > constraint_max
+        ic = actual_improve.item() < 0
+        logger.debug('Backtrack iter %d: a/e/cv: %0.5f, %0.5f, %0.5f' % (_n_backtracks, actual_improve.item(), expected_improve.item(),cv))
+        if cv:
             import pdb; pdb.set_trace()
-            logger.info('KL Violated %0.5f' % get_constraint().item())
+            logger.debug('Backtrack iter %d: Constraint Violated %0.5f' % (_n_backtracks,get_constraint().item()))
         elif actual_improve.item() < 0:
-            logger.info('No Improvement')
+            logger.debug('Backtrack iter %d: No Improvement' % _n_backtracks)
         else:
-            logger.info('Done -- fval after: %0.5f'%newfval.item())
+            logger.debug('Backtrack iter %d: Done -- fval after: %0.5f' % (_n_backtracks, newfval.item()))
             return True, xnew
     return False, x
+
 
 
 def function_eval_grad(loss_function,model,*args,params=None):
@@ -92,6 +94,7 @@ def function_eval_grad(loss_function,model,*args,params=None):
     return loss_val,loss_grad
 
 
+
 def l2_loss_l2_reg(model,x,y,lambda_penalty):
     """
     Computes ||f(x;theta) - y||^2_2 + lambda sum_i=1^d ||theta_i||_2^2
@@ -105,6 +108,7 @@ def l2_loss_l2_reg(model,x,y,lambda_penalty):
         loss += lambda_penalty * param.pow(2).sum()
 
     return loss
+
 
 
 # call l_bfgs(model,loss,*args)

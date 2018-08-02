@@ -68,7 +68,7 @@ class TRPO(AlgorithmBase):
         fullstep = stepdir / lm[0]
 
         neggdotstepdir = (-loss_grad * stepdir).sum(0, keepdim=True)
-        logger.info('lagrange multiplier %s, grad norm: %s' % (str(lm[0]),str(loss_grad.norm())))
+        logger.debug('lagrange multiplier %s, grad norm: %s' % (str(lm[0]),str(loss_grad.norm())))
 
         prev_params = ut.get_flat_params_from(model)
         success, new_params = opt.backtracking_ls(model, get_loss, prev_params, fullstep, neggdotstepdir / lm[0])
@@ -132,10 +132,10 @@ class TRPO_v2(AlgorithmBase):
         lm = torch.sqrt(shs / max_kl)
         fullstep = stepdir / lm.item()
         expected_improve = (-loss_grad * stepdir).sum(0, keepdim=True)
-        logger.info('lagrange multiplier %5.3g, grad norm: %5.3g' % (lm.item(),loss_grad.norm().item()))
+        logger.debug('lagrange multiplier %5.3g, grad norm: %5.3g' % (lm.item(),loss_grad.norm().item()))
 
         prev_params = ut.get_flat_params_from(model)
-        success, new_params = opt.backtracking_ls2(model, get_loss, prev_params, fullstep, expected_improve, get_kl, 1.5 * max_kl)
+        success, new_params = opt.backtracking_ls(model, get_loss, prev_params, fullstep, expected_improve, get_kl, 1.5 * max_kl)
         ut.set_flat_params_to(model, new_params)
 
         return loss
@@ -162,7 +162,7 @@ class TRPO_v2(AlgorithmBase):
 
         S_t,A_t,G_t,U_t_un = batch
         U_t = (U_t_un - U_t_un.mean()) / U_t_un.std()
-        logger.info('Explained Variance VF Before: %0.5f' % explained_variance(self._critic(S_t).view(-1),G_t.view(-1)))
+        logger.debug('Explained Variance VF Before: %0.5f' % explained_variance(self._critic(S_t).view(-1),G_t.view(-1)))
 
         # update value net
         self._critic_update(S_t,G_t)
@@ -181,4 +181,4 @@ class TRPO_v2(AlgorithmBase):
 
         # do actor step
         self._trpo_step(get_loss, get_kl, self._args['max_kl'], self._args['damping'])
-        logger.info('Mean KL: %0.5f' % get_kl().mean().item())
+        logger.debug('Mean KL: %0.5f' % get_kl().mean().item())
