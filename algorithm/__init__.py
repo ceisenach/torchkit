@@ -14,10 +14,7 @@ class AlgorithmBase(object):
     def _batch_prepare(self,batch):
         raise NotImplementedError()
 
-    def _batch_prepare_gae_full_trajectory_norm(self,batch):
-        return self._batch_prepare_gae_full_trajectory(batch,normalize=True)
-
-    def _batch_prepare_gae_full_trajectory(self,batch,normalize=False):
+    def _batch_prepare_gae_td0_return(self,batch):
         """
         compute advantages for each batch using GAE on full trajectories. G is TD(0) return
         """
@@ -39,8 +36,7 @@ class AlgorithmBase(object):
                 U[N-i-2,:] = delta[N-i-2,:] + self._args['gamma'] * self._args['tau'] * U[N-i-1,:] * M[N-i-2,:]
 
             S,A,G,U = S[:-1],A[:-1],G[:-1],U[:-1]
-            if normalize:
-                U = (U - U.mean()) / U.std()
+            U = (U - U.mean()) / U.std()
             return S,A,G,U
 
     def _batch_prepare_gae_lambda_return(self,batch):

@@ -11,7 +11,6 @@ import utils as ut
 
 __all__ = ['TRPO','TRPO_v2']
 
-
 def fisher_vector_product(get_kl,v,model):
     kl = get_kl()
     kl = kl.mean()
@@ -27,6 +26,7 @@ def fisher_vector_product(get_kl,v,model):
 
 def explained_variance(ypred,y):
     """
+    FROM: Open AI Baselines
     Computes fraction of variance that ypred explains about y.
     Returns 1 - Var[y-ypred] / Var[y]
 
@@ -43,12 +43,13 @@ def explained_variance(ypred,y):
 
 class TRPO(AlgorithmBase):
     """
-    TRPO
+    TRPO. Original implementation from TRPO paper. Pytorch version of code found in
+    John Shulman's modular_rl repository on github.
     """
     def __init__(self,policy,critic,args,**kwargs):
         super(TRPO,self).__init__(policy,critic,args,**kwargs)
         self._updates = 0
-        self._batch_prepare = self._batch_prepare_gae_full_trajectory_norm
+        self._batch_prepare = self._batch_prepare_gae_td0_return
 
 
     def _trpo_step(self, get_loss, get_kl, max_kl, damping):
@@ -64,14 +65,14 @@ class TRPO(AlgorithmBase):
         # originally:      shs = 0.5 * (stepdir * (Fvp(stepdir)+damping*stepdir)).sum(0, keepdim=True)
         shs = 0.5 * (stepdir * Fvp(stepdir)).sum(0, keepdim=True)
 
-        lm = torch.sqrt(shs / max_kl)
-        fullstep = stepdir / lm[0]
+        lm = torch.sqrt(shs / max_kl).item()
+        fullstep = stepdir / lm
 
         neggdotstepdir = (-loss_grad * stepdir).sum(0, keepdim=True)
-        logger.debug('lagrange multiplier %s, grad norm: %s' % (str(lm[0]),str(loss_grad.norm())))
+        logger.debug('lagrange multiplier %s, grad norm: %s' % (str(lm),str(loss_grad.norm())))
 
         prev_params = ut.get_flat_params_from(model)
-        success, new_params = opt.backtracking_ls(model, get_loss, prev_params, fullstep, neggdotstepdir / lm[0])
+        success, new_params = opt.backtracking_ls_ratio(model, get_loss, prev_params, fullstep, neggdotstepdir / lm)
         ut.set_flat_params_to(model, new_params)
 
         return loss
@@ -85,20 +86,23 @@ class TRPO(AlgorithmBase):
         if batch is None:
             return
 
-        S_t,A_t,G_t,U_t = batch
+        S_t,A_t,G_t,U_t_un = batch
+        U_t = (U_t_un - U_t_un.mean()) / U_t_un.std()
 
         # update value net
         opt.l_bfgs(opt.l2_loss_l2_reg,self._critic,S_t,G_t,self._args['l2_pen'])
 
-        fixed_log_prob = -self._policy.nll(A_t,S_t).data.clone()
-
         # get_loss, get_kl needed to reconstruct graph for higher order gradients
+        with torch.no_grad():
+            fixed_log_prob = -self._policy.nll(A_t,S_t)
+            output_old = self._actor(S_t)
+
         def get_loss(volatile=False):
             log_prob = -self._policy.nll(A_t,S_t)
             action_loss = - U_t.view(-1) * torch.exp(log_prob - fixed_log_prob)
             return action_loss.mean()
 
-        get_kl = lambda : self._policy.kl_divergence(S_t)
+        get_kl = lambda : self._policy.kl_divergence(S_t,*output_old)
 
         self._trpo_step(get_loss, get_kl, self._args['max_kl'], self._args['damping'])
 
