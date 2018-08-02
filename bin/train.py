@@ -22,7 +22,7 @@ if __name__ == '__main__':
     parser = utils.experiment_argparser()
     args = parser.parse_args()
     train_config = utils.train_params_from_args(args)
-    cumulative_reward_path = os.path.join(train_config['odir'],'cr.npy')
+    episode_results_path = os.path.join(train_config['odir'],'episode_results.npy')
 
     utils.make_directory(train_config['odir'])
     with open(os.path.join(train_config['odir'],'train_config.json'), 'w') as fp:
@@ -61,21 +61,21 @@ if __name__ == '__main__':
         raise RuntimeError('Algorithm not found')
 
     sampler = sampler.BatchSampler(plc,**train_config)
-    cumulative_rewards = np.array([]).reshape((0,3))
+    episode_results = np.array([]).reshape((0,5))
     cur_update = 0
     finished_episodes = 0
     sampler.reset()
 
     while cur_update < train_config['num_updates']:
-        batch,crs = sampler.sample()
+        batch,crs,trs,els = sampler.sample()
         algo.update(batch)
 
-        # save cumulative rewards
-        for i,cr in enumerate(crs):
+        # save episode results
+        for i,(cr,tr,el) in enumerate(zip(crs,trs,els)):
             finished_episodes += 1
-            cumulative_rewards = np.concatenate((cumulative_rewards,np.array([cur_update,finished_episodes,cr],ndmin=2)),axis=0)
-            np.save(cumulative_reward_path, cumulative_rewards)
-            logger.info('Finished Episode: %04d, Update Number: %06d, Cumulative Reward: %.3f'% (finished_episodes,cur_update,cr))
+            episode_results = np.concatenate((episode_results,np.array([cur_update,finished_episodes,el,tr,cr],ndmin=2)),axis=0)
+            np.save(episode_results_path, episode_results)
+            logger.info('Update Number: %06d, Finished Episode: %04d ---  Length: %.3f, TR: %.3f, CDR: %.3f'% (cur_update,finished_episodes,el,tr,cr))
 
         # checkpoint
         if cur_update % train_config['save_interval'] == 0:

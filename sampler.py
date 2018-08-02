@@ -30,6 +30,7 @@ class Sampler(object):
         self._running_state = ZFilter((env.observation_space.shape[0],), clip=5)
         self._running_reward = ZFilter((1,), demean=False, clip=10)
         self._cr = 0.0
+        self._tr = 0.0
         self._terminal = False
         self._t = 0
         self._s_t_numpy = None
@@ -40,7 +41,7 @@ class Sampler(object):
         Get a batch of samples
         """
         self._experience_buffer.reset()
-        crs = []
+        crs,trs,els = [],[],[]
         s_t_numpy = self._s_t_numpy
         num_steps = 0
 
@@ -48,7 +49,9 @@ class Sampler(object):
             if self._terminal:
                 s_t_numpy = self._base_env.reset()
                 crs.append(self._cr)
-                self._cr,self._t = 0,0
+                trs.append(self._tr)
+                els.append(self._t)
+                self._tr,self._cr,self._t = 0,0,0
                 self._terminal = False
 
             # take step
@@ -65,6 +68,7 @@ class Sampler(object):
                     raise e
 
             self._cr += (self._gamma**self._t)*r_tp1_f
+            self._tr += r_tp1_f
 
             # terminal state mask
             m_t_f = 0 if self._terminal else 1
@@ -81,11 +85,11 @@ class Sampler(object):
             
         self._s_t_numpy = s_t_numpy
         batch = self._experience_buffer.get_data()
-        return batch,crs
+        return batch,crs,trs,els
 
     def reset(self):
         self._s_t_numpy = self._base_env.reset()
-        self._cr,self._t = 0,0
+        self._cr,self._tr,self._t = 0,0,0
         self._terminal = False
 
 
@@ -103,12 +107,12 @@ class BatchSampler(object):
         """
         Get multiple minibatches of samples
         """
-        bl,crs = [],[]
+        bl,crs,trs,els = [],[],[],[]
         for smp in self._samplers:
-            b,c = smp.sample()
+            b,c,t,e = smp.sample()
             bl.append(b)
-            crs = crs + c
-        return bl,crs
+            crs,trs,els = crs + c, trs + t, els + e
+        return bl,crs,trs,els
 
     def reset(self):
         """
