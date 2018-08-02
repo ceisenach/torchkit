@@ -9,6 +9,7 @@ def zero_jacobian(param_list,backend='pytorch'):
     for p in param_list:
         p.zero_jacobian_(backend)
 
+
 def zero_grad(param_list):
     for p in param_list:
         if p.grad is not None:
@@ -38,17 +39,6 @@ def gather_jacobian(param_list,backend='pytorch'):
         jacobian = np.concatenate(pjs,axis=-1)
         del pjs
         return jacobian
-
-
-def gather_grad(param_list):
-    pgs = []
-    for p in param_list:
-        pg = p.grad
-        if pg is not None:
-            pgs.append(pg.view(-1))
-
-    grad = torch.cat(pgs,dim=0)
-    return grad
 
 
 def flat_dim(shape):

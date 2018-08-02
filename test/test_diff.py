@@ -4,6 +4,7 @@ import numpy as np
 import autodiff as ad
 import autodiff.modules as nn
 import autodiff.functional as F
+import utils as ut
 from . import ExtendedTestCase
 
 class SimpleNet(nn.Module):
@@ -111,7 +112,7 @@ class TestAutoDiff(ExtendedTestCase):
             net_out = net(data)
             loss = net_out[:,i].sum()
             loss.backward()
-            g = ad.util.gather_grad(net.parameters())
+            g = ut.get_flat_grad_from(net)
             grads.append(g.view(1,-1))
 
         j_g = torch.cat(grads,dim=0)
@@ -130,6 +131,6 @@ class TestAutoDiff(ExtendedTestCase):
 
         # Grad
         loss.backward()
-        g = ad.util.gather_grad(net.parameters())
+        g = ut.get_flat_grad_from(net)
 
         return g,j

@@ -34,7 +34,7 @@ def experiment_argparser():
     parser.add_argument('-b','--backend',type=str, default='numpy', metavar='G',help='backend to use for Jacobian')
     parser.add_argument("--nk",  type=str,default=None, help="kwargs for actor and critic nets")
     parser.add_argument("--tr",  type="store_false", help="store total reward instead of CDR")
-    
+
     return parser
 
 def train_config_from_args(args):
@@ -123,8 +123,12 @@ class MultiRingBuffer(object):
             return [data[0:self.length] for data in self.dataList]
         return self.dataList
 
-# from ikostrikov
+
 def get_flat_params_from(model,backend='pytorch'):
+    """
+    Get parameters from model as a single vector.
+    backend signifies if a np.ndarray or torch.Tensor should be returned
+    """
     params = []
     for param in model.parameters():
         if backend == 'pytorch':
@@ -135,7 +139,12 @@ def get_flat_params_from(model,backend='pytorch'):
     flat_params = torch.cat(params) if backend == 'pytorch' else np.concatenate(params,axis=0)
     return flat_params
 
+
 def set_flat_params_to(model,flat_params):
+    """
+    Copy data from flat_params to parameters in model.
+    flat_params can be torch.Tensor or np.ndarray
+    """
     prev_ind = 0
     flat_params = flat_params if isinstance(flat_params,torch.Tensor) else torch.from_numpy(flat_params)
     for param in model.parameters():
@@ -143,7 +152,13 @@ def set_flat_params_to(model,flat_params):
         param.data.copy_(flat_params[prev_ind:prev_ind + flat_size].view(param.size()))
         prev_ind += flat_size
 
+
 def get_flat_grad_from(net, grad_grad=False,backend='pytorch'):
+    """
+    Get gradient from model as a single vector.
+    backend signifies if a np.ndarray or torch.Tensor should be returned
+    grad_grad=True signifies a second derivative.
+    """
     grads = []
     for param in net.parameters():
         if backend == 'pytorch':
@@ -161,7 +176,10 @@ def get_flat_grad_from(net, grad_grad=False,backend='pytorch'):
     return flat_grad
 
 
-def total_params(net,only_grad = False):
+def count_params(net,only_grad = False):
+    """
+    Count number of parameters with grad or all parameters in model.
+    """
     if only_grad:
         return sum(p.numel() for p in net.parameters() if p.requires_grad)
     return sum(p.numel() for p in net.parameters())
