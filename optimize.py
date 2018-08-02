@@ -63,12 +63,12 @@ def backtracking_ls(model,f,x,fullstep,expected_improve,get_constraint = lambda 
         ut.set_flat_params_to(model, xnew)
         newfval = f(True).data
         actual_improve = fval - newfval
-        cv = get_constraint().mean().item() > constraint_max
+        cv = get_constraint() > constraint_max
         ic = actual_improve.item() < 0
         logger.debug('Backtrack iter %d: a/e/cv: %0.5f, %0.5f, %0.5f' % (_n_backtracks, actual_improve.item(), expected_improve.item(),cv))
         if cv:
             import pdb; pdb.set_trace()
-            logger.debug('Backtrack iter %d: Constraint Violated %0.5f' % (_n_backtracks,get_constraint().item()))
+            logger.debug('Backtrack iter %d: Constraint Violated %0.5f' % (_n_backtracks,get_constraint()))
         elif actual_improve.item() < 0:
             logger.debug('Backtrack iter %d: No Improvement' % _n_backtracks)
         else:

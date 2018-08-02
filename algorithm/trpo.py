@@ -105,15 +105,13 @@ class TRPO(AlgorithmBase):
 
 class TRPO_v2(AlgorithmBase):
     """
-    TRPO
+    TRPO: Pytorch version of TRPO as implemented in TRPO_MPI in OpenAI Baselines.
     """
     def __init__(self,policy,critic,args,**kwargs):
         super(TRPO_v2,self).__init__(policy,critic,args,**kwargs)
         self._updates = 0
         self._batch_prepare = self._batch_prepare_gae_lambda_return
-        # self._critic_optimizer = torch.optim.SGD(self._critic.parameters(), lr=1e-3)
         self._critic_optimizer = torch.optim.Adam(self._critic.parameters(), lr=1e-3)
-        print(ut.get_flat_params_from(self._actor).sum().item())
 
     def _trpo_step(self, get_loss, get_kl, max_kl, damping):
         model = self._actor
@@ -122,20 +120,17 @@ class TRPO_v2(AlgorithmBase):
         loss_grad = torch.cat([grad.view(-1) for grad in grads]).data
 
         Fvp = lambda v : fisher_vector_product(get_kl,v,model)
-
         stepdir = opt.conjugate_gradients(Fvp, -loss_grad, 10, damping)
-
-        # originally:      shs = 0.5 * (stepdir * (Fvp(stepdir)+damping*stepdir)).sum(0, keepdim=True)
-        # shs = 0.5 * (stepdir * Fvp(stepdir)).sum(0, keepdim=True)
         shs = 0.5 * (stepdir * (Fvp(stepdir)+damping*stepdir)).sum(0)
 
-        lm = torch.sqrt(shs / max_kl)
-        fullstep = stepdir / lm.item()
+        lm = torch.sqrt(shs / max_kl).item()
+        fullstep = stepdir / lm
         expected_improve = (-loss_grad * stepdir).sum(0, keepdim=True)
-        logger.debug('lagrange multiplier %5.3g, grad norm: %5.3g' % (lm.item(),loss_grad.norm().item()))
+        logger.debug('lagrange multiplier %5.3g, grad norm: %5.3g' % (lm,loss_grad.norm().item()))
 
         prev_params = ut.get_flat_params_from(model)
-        success, new_params = opt.backtracking_ls(model, get_loss, prev_params, fullstep, expected_improve, get_kl, 1.5 * max_kl)
+        kl_constraint_eval = lambda : get_kl().mean().item()
+        success, new_params = opt.backtracking_ls(model, get_loss, prev_params, fullstep, expected_improve, kl_constraint_eval, 1.5 * max_kl)
         ut.set_flat_params_to(model, new_params)
 
         return loss
