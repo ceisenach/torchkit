@@ -17,7 +17,7 @@ class NACGauss(AlgorithmBase):
         super(NACGauss,self).__init__(policy,critic,args,**kwargs)
         self._updates = 0
         self._batch_prepare = self._batch_prepare_gae_lambda_return
-        self._critic_optimizer = torch.optim.Adam(self._critic.parameters(), lr=args['lr'])
+        self._critic_optimizer = torch.optim.Adam(self._critic.parameters(), lr=args['lr_critic'])
 
     def _actor_update(self,S_t,A_t_hat,U_t):
         lg = None
@@ -41,7 +41,7 @@ class NACGauss(AlgorithmBase):
             # # weight decay
             # l2_pen = 0.01
             # stepdir = stepdir + l2_pen * prev_params
-            new_params = prev_params - self._args['lr'] * stepdir
+            new_params = prev_params - self._args['lr_actor'] * stepdir
             ut.set_flat_params_to(self._actor, new_params)
 
 

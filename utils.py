@@ -6,6 +6,7 @@ import time
 import math
 import copy
 import ast
+import random
 
 
 def make_directory(dirpath):
@@ -13,7 +14,8 @@ def make_directory(dirpath):
 
 def experiment_argparser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--lr', default=1e-3, type=float, help='learning rate')
+    parser.add_argument('--lra', default=1e-3, type=float, help='learning rate actor')
+    parser.add_argument('--lrc', default=1e-3, type=float, help='learning rate critic')
     parser.add_argument("-o", "--odir", type=str, default=None, help="output directory")
     parser.add_argument("-d", "--debug", action="store_true", help="debug")
     # parser.add_argument("-p",'--policy' ,type=str, default='angular', help="policy type to use")
@@ -28,11 +30,12 @@ def experiment_argparser():
     parser.add_argument('--tau', type=float, default=0.98, metavar='G',help='gae (default: 0.97)')
     parser.add_argument('--l2_pen', type=float, default=1e-3, metavar='G',help='l2 regularization regression (default: 1e-3)')
     parser.add_argument('--max_kl', type=float, default=1e-2, metavar='G',help='max kl value (default: 1e-2)')
-    parser.add_argument('--seed', type=int, default=543, metavar='N',help='random seed (default: 1)')
+    parser.add_argument('--seed', type=int, default=543, metavar='N',help='random seed (default: 543). -1 indicates no seed')
     parser.add_argument('--damping', type=float, default=1e-1, metavar='G',help='damping (default: 1e-1)')
     parser.add_argument('-a','--alg',type=str, default='TRPO', metavar='G',help='algorithm to use')
     parser.add_argument('-b','--backend',type=str, default='numpy', metavar='G',help='backend to use for Jacobian')
     parser.add_argument("--nk",  type=str,default=None, help="kwargs for actor and critic nets")
+    parser.add_argument("--run",  type=int,default=0, help="indicates what run number if running multiple of same experiment")
 
     return parser
 
@@ -42,18 +45,20 @@ def train_params_from_args(args):
                          'tau' : args.tau,
                          'max_kl' : args.max_kl,
                          'l2_pen' : args.l2_pen,
-                         'lr' : args.lr,
+                         'lr_actor' : args.lra,
+                         'lr_critic' : args.lrc,
                          'damping' : args.damping,
                          'backend' : args.backend,
                          'num_env' : args.num_env,
                          'ac_kwargs': get_kwargs(args.nk),
                          'debug' : args.debug,
                          # 'policy' : args.policy,
-                         'seed' : args.seed,
+                         'seed' : args.seed if args.seed != -1 else random.randint(0,1e8), # make a random seed
                          'num_updates' : int(args.num_updates),
                          'N' : args.N,
                          'env' : args.env,
                          'console' : args.console,
+                         'run' : args.run,
                          'odir' : args.odir if args.odir is not None else 'out/experiment_%s' % time.strftime("%Y.%m.%d_%H.%M.%S"),
                          'save_interval' : int(args.save_interval)}
 

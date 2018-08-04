@@ -12,8 +12,8 @@ class A2C(AlgorithmBase):
         super(A2C,self).__init__(policy,critic,args,**kwargs)
         self._updates = 0
         self._batch_prepare = self._batch_prepare_advantages
-        self._critic_optimizer = torch.optim.SGD(self._critic.parameters(), lr=args['lr'])
-        self._actor_optimizer = torch.optim.SGD(self._actor.parameters(), lr=args['lr'])
+        self._critic_optimizer = torch.optim.SGD(self._critic.parameters(), lr=args['lr_critic'])
+        self._actor_optimizer = torch.optim.SGD(self._actor.parameters(), lr=args['lr_actor'])
 
     def update(self,batch_list):
         """

@@ -121,7 +121,7 @@ class TRPO_v2(TRPOBase):
         super(TRPO_v2,self).__init__(policy,critic,args,**kwargs)
         self._updates = 0
         self._batch_prepare = self._batch_prepare_gae_lambda_return
-        self._critic_optimizer = torch.optim.Adam(self._critic.parameters(), lr=1e-3)
+        self._critic_optimizer = torch.optim.Adam(self._critic.parameters(), lr=self._args['lr_critic'])
 
     def _trpo_step(self, get_loss, get_kl, max_kl, damping):
         model = self._actor

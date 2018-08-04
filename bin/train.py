@@ -8,6 +8,7 @@ import logging
 logger = logging.getLogger(__name__)
 import gym
 import json
+import random
 
 import sampler
 import algorithm
@@ -22,15 +23,15 @@ if __name__ == '__main__':
     parser = utils.experiment_argparser()
     args = parser.parse_args()
     train_config = utils.train_params_from_args(args)
-    episode_results_path = os.path.join(train_config['odir'],'episode_results.npy')
+    episode_results_path = os.path.join(train_config['odir'],'episode_results_run_%d.npy' % train_config['run'])
 
     utils.make_directory(train_config['odir'])
-    with open(os.path.join(train_config['odir'],'train_config.json'), 'w') as fp:
+    with open(os.path.join(train_config['odir'],'train_config_run_%d.json' % train_config['run']), 'w') as fp:
         json.dump(train_config, fp, sort_keys=True, indent=4)
 
     log_level = logging.DEBUG if train_config['debug'] else logging.INFO
     if not train_config['console']:     
-        logging.basicConfig(filename=os.path.join(train_config['odir'],'log_main.log'),
+        logging.basicConfig(filename=os.path.join(train_config['odir'],'log_run_%d.log' % train_config['run']),
                 level=log_level,
                 format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',)
     else:
@@ -41,7 +42,10 @@ if __name__ == '__main__':
     env = gym.make(train_config['env'])
     num_inputs = env.observation_space.shape[0]
     num_actions = env.action_space.shape[0]
-    torch.manual_seed(train_config['seed'])
+    if train_config['seed'] is not None:
+        random.seed(train_config['seed'])
+        ts = random.randint(1,1e8)
+        torch.manual_seed(ts)
 
     actor_net = model.Policy(num_inputs, num_actions,**train_config['ac_kwargs'])
     critic_net = model.Value(num_inputs,**train_config['ac_kwargs'])
@@ -77,5 +81,5 @@ if __name__ == '__main__':
 
         # checkpoint
         if cur_update % train_config['save_interval'] == 0:
-            plc.save_model(os.path.join(train_config['odir'],'model_update_%06d.pt'%(cur_update)))
+            plc.save_model(os.path.join(train_config['odir'],'model_update_%06d_run_%d.pt' % (cur_update,train_config['run'])))
         cur_update += 1

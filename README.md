@@ -33,7 +33,7 @@ More examples
 ```
  python bin/train.py -V 1 -N 10 --ack "{'hidden_layers' :  2}" --lr 0.01  -u 1e4  -co
 ```
-Flag '--co' indicates to log output to console instead of to file. Can be useful for debugging
+Flag '--co' indicates to log output to console instead of to file. Can be useful for debugging. Passing in seed of -1 means that no seed is used.
 
 
 Make seaborn confidence bands plot

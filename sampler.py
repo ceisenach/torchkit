@@ -1,6 +1,8 @@
 import gym
 import torch
 import logging
+import random
+import copy
 logger = logging.getLogger(__name__)
 
 from utils import MultiRingBuffer
@@ -100,7 +102,9 @@ class BatchSampler(object):
     def __init__(self,policy,**kwargs):
         self._samplers = []
         for i in range(kwargs['num_env']):
-            smp = Sampler(policy,**kwargs)
+            sk = copy.deepcopy(kwargs)
+            sk['seed'] = random.randint(1,1e8) # give different seed to each sampler
+            smp = Sampler(policy,**sk)
             self._samplers.append(smp)
 
     def sample(self):
