@@ -11,6 +11,7 @@ def conjugate_gradients(Avp, b, nsteps, damping, residual_tol=1e-10, grad=True, 
     with torch.set_grad_enabled(grad):
         x = torch.zeros(b.shape) if backend == 'pytorch' else np.zeros(b.shape,dtype=np.float32)
         df = torch.dot if backend == 'pytorch' else np.dot
+        nf = torch.norm if backend =='pytorch' else np.linalg.norm
         r = b.clone() if backend == 'pytorch' else b.copy()
         p = b.clone() if backend == 'pytorch' else b.copy()
 
@@ -20,7 +21,7 @@ def conjugate_gradients(Avp, b, nsteps, damping, residual_tol=1e-10, grad=True, 
 
         rdotr = df(r, r)
         for i in range(nsteps):
-            logger.debug(fmtstr % (i, rdotr, torch.norm(x)))
+            logger.debug(fmtstr % (i, rdotr, nf(x)))
             _Avp = Avp(p) + p * damping
             alpha = rdotr / df(p, _Avp)
             x += alpha * p
@@ -31,7 +32,7 @@ def conjugate_gradients(Avp, b, nsteps, damping, residual_tol=1e-10, grad=True, 
             rdotr = new_rdotr
             if rdotr < residual_tol:
                 break
-        logger.debug(fmtstr % (i+1, rdotr, np.linalg.norm(x)))
+        logger.debug(fmtstr % (i+1, rdotr, nf(x)))
         return x
 
 

@@ -5,18 +5,22 @@ Implementation of natural actor-critic algorithms for exponential family distrib
 # Package Structure
 
 ## algorithms
+### A2C
+A synchronous version of A3C. Provided as a comparison for NACGauss and TRPO implementations
+
 ### Natural AC
-Natural actor-critic for exponential family.
+Natural actor-critic for exponential family. NACGauss is the Natural Actor Critic for the Gaussian family. So far, it supports Gaussian distributions with diagonal covariance structure. 
+
 
 
 ### TRPO Implementation
-Originally based on ikostrikov's port of John Schulman's code; mostly re-factored and re-implemented now.
+TRPO is a PyTorch implementation of John Schulman's original implementation.
 
+TRPO_v2 is a PyTorch implementation of OpenAI Baselines TRPO_MPI. Performance of our implementation is the same as baselines.
 
 
 ## autodiff
 Light wrapper around pytorch to implement auto-differentiation of vector valued functions.
-
 
 
 
@@ -29,8 +33,11 @@ More examples
 ```
  python bin/train.py -V 1 -N 10 --ack "{'hidden_layers' :  2}" --lr 0.01  -u 1e4  -co
 ```
+Flag '--co' indicates to log output to console instead of to file. Can be useful for debugging
 
-Make time series plot
+
+Make seaborn confidence bands plot
 ```
-python bin/plot.py -d out/experiment_2018.07.31_18.32.44/ -p tseries
+python bin/plot.py -d res/exp_angular/ res/exp_gauss res/exp_gauss1D/ -n Angular MVG 1DG -o res --plot sns
 ```
+To use plotting, all runs of the same experiment should be in the same directory

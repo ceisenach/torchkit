@@ -57,11 +57,11 @@ if __name__ == '__main__':
         raise RuntimeError('Algorithm "%s" not found' % train_config['alg'])
 
     sampler = sampler.BatchSampler(plc,**train_config)
-    episode_results = np.array([]).reshape((0,5))
+    episode_results = np.array([]).reshape((0,6))
     cur_update = 0
     finished_episodes = 0
     sampler.reset()
-
+    samples_per_update = train_config['N'] * train_config['num_env']
     while cur_update < train_config['num_updates']:
         batch,crs,trs,els = sampler.sample()
         algo.update(batch)
@@ -69,7 +69,9 @@ if __name__ == '__main__':
         # save episode results
         for i,(cr,tr,el) in enumerate(zip(crs,trs,els)):
             finished_episodes += 1
-            episode_results = np.concatenate((episode_results,np.array([cur_update,finished_episodes,el,tr,cr],ndmin=2)),axis=0)
+            total_samples = cur_update * samples_per_update
+            # stores: total_updates, total_episodes, total_samples, current_episode_length, current_total_reward, current_cumulative_reward
+            episode_results = np.concatenate((episode_results,np.array([cur_update,finished_episodes,total_samples,el,tr,cr],ndmin=2)),axis=0)
             np.save(episode_results_path, episode_results)
             logger.info('Update Number: %06d, Finished Episode: %04d ---  Length: %.3f, TR: %.3f, CDR: %.3f'% (cur_update,finished_episodes,el,tr,cr))
 
