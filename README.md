@@ -28,12 +28,20 @@ Light wrapper around pytorch to implement auto-differentiation of vector valued 
 Contains script to run training, e.g.
 ```
 python bin/train.py --co -N 100
-```
-More examples
-```
- python bin/train.py -V 1 -N 10 --ack "{'hidden_layers' :  2}" --lr 0.01  -u 1e4  -co
+ python bin/train.py -V 1 -N 10 --nk "{'hidden_layers' :  2}" --lr 0.01  -u 1e4  -co
 ```
 Flag '--co' indicates to log output to console instead of to file. Can be useful for debugging. Passing in seed of -1 means that no seed is used.
+
+For TRPO
+```
+ python bin/train.py --e Platform2D-v1 --co -N 1000 -a TRPO
+```
+For NAC
+```
+ python bin/train.py --e Platform2D-v1 --co -N 32 -a NACGauss
+ python bin/train.py --e Platform2D-v1 --co -N 1000 -a TRPO
+ python bin/train.py --e Platform2D-v1 --co -N 128 -a NACGauss --lrc 0.01 --lra 0.1
+```
 
 
 Make seaborn confidence bands plot

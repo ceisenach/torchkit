@@ -47,6 +47,13 @@ if __name__ == '__main__':
         ts = random.randint(1,1e8)
         torch.manual_seed(ts)
 
+    log_str = '\r\n###################################################\r\n' + \
+              '\tAlgorithm: %s\r\n' % train_config['alg'] + \
+              '\tNetwork Params: %s \r\n' % str(train_config['ac_kwargs']) + \
+              '\tN, Total Updates, Save Interval: (%d,%d,%d) \r\n' % (train_config['N'],train_config['num_updates'],train_config['save_interval']) + \
+              '###################################################'
+    logger.info(log_str)
+
     actor_net = model.Policy(num_inputs, num_actions,**train_config['ac_kwargs'])
     critic_net = model.Value(num_inputs,**train_config['ac_kwargs'])
     plc = policy.GaussianPolicy(actor_net)
