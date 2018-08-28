@@ -78,7 +78,7 @@ class PolicyBeta(nn.Module):
         normc_initializer(self.beta.affine_out.bias,0.01,axis=-1)
 
     def forward(self,x,save_for_jacobian=False,**kwargs):
-        aout = TF.softplus(self.alpha(x,save_for_jacobian,**kwargs)) + 1.0
-        bout = TF.softplus(self.beta(x,save_for_jacobian,**kwargs)) + 1.0
+        aout = F.softplus(self.alpha(x,save_for_jacobian,**kwargs))
+        bout = F.softplus(self.beta(x,save_for_jacobian,**kwargs))
 
         return aout,bout
