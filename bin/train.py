@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 import gym
 import json
 import random
+import time
 
 import sampler
 import algorithm
@@ -73,6 +74,7 @@ if __name__ == '__main__':
     finished_episodes = 0
     sampler.reset()
     samples_per_update = train_config['N'] * train_config['num_env']
+    start = time.time()
     while cur_update < train_config['num_updates']:
         batch,crs,trs,els = sampler.sample()
         algo.update(batch)
@@ -90,3 +92,6 @@ if __name__ == '__main__':
         if cur_update % train_config['save_interval'] == 0:
             plc.save_model(os.path.join(train_config['odir'],'model_update_%06d_run_%d.pt' % (cur_update,train_config['run'])))
         cur_update += 1
+
+    end = time.time()
+    print(end - start)
