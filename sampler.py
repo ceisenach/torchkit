@@ -19,12 +19,12 @@ class Sampler(object):
     """
     Samples batches using policy for an environment specified by kwargs
     """ 
-    def __init__(self,policy,**kwargs):
+    def __init__(self,policy_obj,**kwargs):
         env = gym.make(kwargs['env'])
         env.seed(kwargs['seed'])
         exp_shapes = [env.observation_space.shape,env.action_space.shape,(1,),(1,)]
         self._base_env = env
-        self._policy = policy
+        self._policy = policy_obj
         self._N = kwargs['N']
         self._gamma = kwargs['gamma']
         # self._experience_buffer = MultiRingBuffer(exp_shapes,self._N+1,tensor_type=torch.DoubleTensor)
@@ -37,6 +37,8 @@ class Sampler(object):
         self._t = 0
         self._s_t_numpy = None
         self._debug = kwargs['debug']
+        self._act_low = torch.from_numpy(self._base_env.action_space.low)
+        self._act_high = torch.from_numpy(self._base_env.action_space.high)
 
     def sample(self):
         """
@@ -60,7 +62,8 @@ class Sampler(object):
             s_t_numpy = self._running_state(s_t_numpy)
             s_t = torch.from_numpy(s_t_numpy).float()
             a_t = self._policy.action(s_t)
-            a_t_numpy = a_t.numpy()
+            a_t_scaled = self._policy.scale(a_t,self._act_low,self._act_high)
+            a_t_numpy = a_t_scaled.numpy()
             try:
                 s_tp1_numpy, r_tp1_f, self._terminal, _ = self._base_env.step(a_t_numpy)
             except Exception as e:
@@ -99,12 +102,12 @@ class BatchSampler(object):
     """
     Sample from multiple independent copies of the same environment.
     """
-    def __init__(self,policy,**kwargs):
+    def __init__(self,policy_obj,**kwargs):
         self._samplers = []
         for i in range(kwargs['num_env']):
             sk = copy.deepcopy(kwargs)
             sk['seed'] = random.randint(1,1e8) # give different seed to each sampler
-            smp = Sampler(policy,**sk)
+            smp = Sampler(policy_obj,**sk)
             self._samplers.append(smp)
 
     def sample(self):

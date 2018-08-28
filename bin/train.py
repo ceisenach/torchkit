@@ -50,14 +50,21 @@ if __name__ == '__main__':
 
     log_str = '\r\n###################################################\r\n' + \
               '\tAlgorithm: %s\r\n' % train_config['alg'] + \
+              '\tPolicy Class: %s\r\n' % train_config['policy'] + \
+              '\tNetwork Types: (%s,%s)\r\n' % tuple(train_config['ac_types']) + \
               '\tNetwork Params: %s \r\n' % str(train_config['ac_kwargs']) + \
               '\tN, Total Updates, Save Interval: (%d,%d,%d) \r\n' % (train_config['N'],train_config['num_updates'],train_config['save_interval']) + \
               '###################################################'
     logger.info(log_str)
 
-    actor_net = model.Policy(num_inputs, num_actions,**train_config['ac_kwargs'])
-    critic_net = model.Value(num_inputs,**train_config['ac_kwargs'])
-    plc = policy.GaussianPolicy(actor_net)
+    actor_net = getattr(model,train_config['ac_types'][0])(num_inputs, num_actions,**train_config['ac_kwargs'])
+    critic_net = getattr(model,train_config['ac_types'][1])(num_inputs,**train_config['ac_kwargs'])
+    plc = None
+    try:
+        plc_class = getattr(policy,train_config['policy'])
+        plc = plc_class(actor_net)
+    except AttributeError as e:
+        raise RuntimeError('Algorithm "%s" not found' % train_config['policy'])
 
     ###############################
     # CREATE ENVIRONMENT AND RUN

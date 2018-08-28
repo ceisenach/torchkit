@@ -1,6 +1,7 @@
 # Imports
 import torch
 from torch.autograd import Variable
+from torch.distributions.beta import Beta as TBeta
 import math
 import numpy as np
 
@@ -26,12 +27,15 @@ class BasePolicy(object):
     def parameters(self):
         return self._net.parameters()
 
+    def scale(self,action,high,low):
+        return action
+
     @property
     def net(self):
         return self._net
 
 
-class GaussianPolicy(BasePolicy):
+class Gaussian(BasePolicy):
     """
     Gaussian Policy.
 
@@ -39,7 +43,7 @@ class GaussianPolicy(BasePolicy):
     of a Gaussian model. The covariance is a diagonal matrix.
     """
     def __init__(self,acnet,**kwargs):
-        super(GaussianPolicy,self).__init__(acnet,**kwargs)
+        super(Gaussian,self).__init__(acnet,**kwargs)
 
     def kl_divergence(self,states,mean0,log_std0):
         std0 = torch.exp(log_std0).detach()
@@ -61,7 +65,7 @@ class GaussianPolicy(BasePolicy):
         return log_prob
 
 
-    def action(self,s_t,sample=True):
+    def action(self,s_t,sample=True,**kwargs):
         # if sample:
         #     self._net.eval()
         action_mean,action_log_std = self._net(s_t)
@@ -174,3 +178,73 @@ class GaussianPolicy(BasePolicy):
             g = np.concatenate([g1,g2],axis=0)
 
             return g
+
+
+class Beta(BasePolicy):
+    """
+    Beta Policy.
+
+    
+    """
+    def __init__(self,acnet,**kwargs):
+        super(Beta,self).__init__(acnet,**kwargs)
+
+    def kl_divergence(self,states,alpha0,beta0):
+        """
+        KL(pi_old || pi_new)
+        """
+        alpha1, beta1 = self._net(Variable(states))
+        delta_lgamma = torch.lgamma(alpha0 + beta0) - torch.lgamma(alpha1 + beta1) - torch.lgamma(alpha0)\
+                       - torch.lgamma(beta0) + torch.lgamma(alpha1) + torch.lgamma(beta1)
+        tpab = torch.polygamma(0,alpha0 + beta0)
+        delta_pgamma = (alpha0-alpha1)*(torch.polygamma(0,alpha0) - tpab) + (beta0-beta1)*(torch.polygamma(0,beta0) - tpab)
+        kl = delta_pgamma + delta_lgamma
+        return kl.sum(1, keepdim=True)
+
+    def nll(self,a_t_hat,s_t):
+        alpha, beta = self._net(s_t.detach())
+        lx = torch.log(a_t_hat)
+        l1mx = torch.log(1.-a_t_hat)
+        lgamma = torch.lgamma(alpha+beta) - torch.lgamma(alpha) - torch.lgamma(beta)
+        log_prob = (alpha-1.0)*lx + (beta-1.)*l1mx + lgamma
+        nlog_prob = -log_prob.sum(dim=1)
+        assert nlog_prob.dim() == 1
+        return nlog_prob
+
+
+    def action(self,s_t,sample=True,**kwargs):
+        if not sample:
+            raise RuntimeError('Not supported')
+        alpha,beta = self._net(s_t)
+        bs = TBeta(alpha,beta)
+        return bs.sample().detach()
+
+
+    def fisher_information(self,states,batch_approx=False,backend='pytorch'):
+        # with torch.autograd.no_grad():
+        assert states.dim() == 2, "States should be 2D"
+        if batch_approx is True:
+            raise RuntimeError('Not implemented yet')
+
+        with torch.no_grad():
+            fi = None
+            if backend == 'pytorch':
+                fi = self._fisher_information_torch(states,batch_approx)
+            else:
+                fi = self._fisher_information_numpy(states,batch_approx)
+
+            return fi
+
+    def _fisher_information_torch(self,states,batch_approx):
+        pass
+
+    def _fisher_information_numpy(self,states,batch_approx):
+        pass
+
+
+    def fisher_vector_product(self,DmuT,Ig_11_Dmu,EI_22d,v,backend='pytorch'):
+        pass
+
+    def scale(self,action,high,low):
+        dist = high-low
+        return (action -0.5 ) / (high-low)

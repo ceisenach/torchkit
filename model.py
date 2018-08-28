@@ -2,7 +2,7 @@ import torch
 import torch.nn.init as init
 import autodiff.functional as F
 import autodiff.modules as nn
-
+import torch.nn.functional as TF
 
 # Original TRPO uses 2 hidden layers with width 64
 # normc is initialization procedure from open AI baselines
@@ -64,3 +64,21 @@ class Policy(FFNet_base):
         action_log_std = self.action_log_std.expand_as(out.data)
 
         return out, action_log_std
+
+class PolicyBeta(nn.Module):
+    def __init__(self,in_size,out_size,width=32,hidden_layers = 2,**kwargs):
+        super(PolicyBeta, self).__init__()
+        self.alpha = FFNet_base(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
+        self.beta = FFNet_base(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
+
+        #override output init
+        normc_initializer(self.alpha.affine_out.weight,0.01,axis=-1)
+        normc_initializer(self.alpha.affine_out.bias,0.01,axis=-1)
+        normc_initializer(self.beta.affine_out.weight,0.01,axis=-1)
+        normc_initializer(self.beta.affine_out.bias,0.01,axis=-1)
+
+    def forward(self,x,save_for_jacobian=False,**kwargs):
+        aout = TF.softplus(self.alpha(x,save_for_jacobian,**kwargs)) + 1.0
+        bout = TF.softplus(self.beta(x,save_for_jacobian,**kwargs)) + 1.0
+
+        return aout,bout

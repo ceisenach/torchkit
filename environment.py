@@ -27,7 +27,8 @@ class Platform2D(gym.Env):
         self.state_shape = (2,)
 
         # Action Space
-        high = np.array([np.finfo(np.float32).max,np.finfo(np.float32).max],dtype = np.float32)
+        # high = np.array([np.finfo(np.float32).max,np.finfo(np.float32).max],dtype = np.float32)
+        high = np.array([1.,1.],dtype = np.float32)
         self.action_space = spaces.Box(-high,high,dtype=np.float32)
 
         # environment config
