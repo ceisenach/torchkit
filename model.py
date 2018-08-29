@@ -3,6 +3,7 @@ import torch.nn.init as init
 import autodiff.functional as F
 import autodiff.modules as nn
 import torch.nn.functional as TF
+import itertools
 
 # Original TRPO uses 2 hidden layers with width 64
 # normc is initialization procedure from open AI baselines
@@ -15,7 +16,15 @@ def normc_initializer(param,std=1.0, axis=-1):
         scale = std / csum_sqrt
         param.data = d*scale
 
-class FFNet_base(nn.Module):
+class OrderedModule(nn.Module):
+
+    def parameters(self,ordered=False,**kwargs):
+        if not ordered or not hasattr(self,'_param_order'):
+            return super(OrderedModule,self).parameters(**kwargs)
+        return itertools.chain(*[m.parameters() for m in self._param_order])
+        
+
+class FFNet_base(OrderedModule):
     def __init__(self,in_size,out_size=1,width=32,hidden_layers = 2,init_std=1.0,**kwargs):
         super(FFNet_base, self).__init__()
         self._hidden_layers = hidden_layers
@@ -65,7 +74,7 @@ class Policy(FFNet_base):
 
         return out, action_log_std
 
-class PolicyBeta(nn.Module):
+class PolicyBeta(OrderedModule):
     def __init__(self,in_size,out_size,width=32,hidden_layers = 2,**kwargs):
         super(PolicyBeta, self).__init__()
         self.alpha = FFNet_base(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
@@ -76,6 +85,28 @@ class PolicyBeta(nn.Module):
         normc_initializer(self.alpha.affine_out.bias,0.01,axis=-1)
         normc_initializer(self.beta.affine_out.weight,0.01,axis=-1)
         normc_initializer(self.beta.affine_out.bias,0.01,axis=-1)
+
+        self._param_order = [self.alpha,self.beta]
+
+    def forward(self,x,save_for_jacobian=False,**kwargs):
+        aout = F.softplus(self.alpha.forward(x,save_for_jacobian,**kwargs),save_for_jacobian=save_for_jacobian)
+        bout = F.softplus(self.beta.forward(x,save_for_jacobian,**kwargs),save_for_jacobian=save_for_jacobian)
+        return aout,bout
+
+
+class PolicyBeta2(OrderedModule):
+    def __init__(self,in_size,out_size,width=32,hidden_layers = 2,**kwargs):
+        super(PolicyBeta2, self).__init__()
+        self.alpha = FFNet_base(in_size,out_size,4,1,init_std=1.0,**kwargs)
+        self.beta = FFNet_base(in_size,out_size,4,1,init_std=1.0,**kwargs)
+
+        #override output init
+        normc_initializer(self.alpha.affine_out.weight,0.01,axis=-1)
+        normc_initializer(self.alpha.affine_out.bias,0.01,axis=-1)
+        normc_initializer(self.beta.affine_out.weight,0.01,axis=-1)
+        normc_initializer(self.beta.affine_out.bias,0.01,axis=-1)
+
+        self._param_order = [self.alpha,self.beta]
 
     def forward(self,x,save_for_jacobian=False,**kwargs):
         aout = F.softplus(self.alpha.forward(x,save_for_jacobian,**kwargs),save_for_jacobian=save_for_jacobian)

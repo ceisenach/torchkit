@@ -122,9 +122,10 @@ class Platform2D(gym.Env):
         self._agent_location = new_location
 
         if self.time % self.LOG_INTERVAL == 0:
-            logger.debug('Time %d -- Predicted Action: (%.3E,%.3E)' % tuple([self.time] + list(action)))
-            logger.debug('Time %d -- Normed Action: (%.3E,%.3E)' % tuple([self.time] + list(norm_action)))
-            logger.debug('Time %d -- New Location: (%.3E,%.3E)' % tuple([self.time] + list(new_location)))
+            # logger.debug('Time %d -- Predicted Action: (%.3E,%.3E)' % tuple([self.time] + list(action)))
+            # logger.debug('Time %d -- Normed Action: (%.3E,%.3E)' % tuple([self.time] + list(norm_action)))
+            # logger.debug('Time %d -- New Location: (%.3E,%.3E)' % tuple([self.time] + list(new_location)))
+            pass
 
     def reset(self):
         """

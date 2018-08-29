@@ -24,8 +24,9 @@ class NAC(AlgorithmBase):
         with torch.enable_grad():
             # Get loss gradient
             lf_actor = torch.mean(U_t.view(-1) * self._policy.nll(A_t_hat,S_t.detach()))
-            grads = torch.autograd.grad(lf_actor, self._policy.parameters())
+            grads = torch.autograd.grad(lf_actor, self._policy.parameters(ordered=True))
             lg = torch.cat([grad.view(-1) for grad in grads]).data
+            # import pdb; pdb.set_trace()
             lg = lg if self._args['backend'] == 'pytorch' else lg.numpy()
 
         # Get natural gradient direction
@@ -37,12 +38,13 @@ class NAC(AlgorithmBase):
             if np.isnan(stepdir).any() and self._args['debug']:
                 import pdb; pdb.set_trace()
             stepdir = stepdir if isinstance(stepdir,torch.Tensor) else torch.from_numpy(stepdir)
-            prev_params = ut.get_flat_params_from(self._actor)
+            prev_params = ut.get_flat_params_from(self._actor,ordered=True)
             # # weight decay
             # l2_pen = 0.01
             # stepdir = stepdir + l2_pen * prev_params
+            # import pdb; pdb.set_trace()
             new_params = prev_params - self._args['lr_actor'] * stepdir
-            ut.set_flat_params_to(self._actor, new_params)
+            ut.set_flat_params_to(self._actor, new_params,ordered=True)
 
 
 

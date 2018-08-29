@@ -33,6 +33,7 @@ def conjugate_gradients(Avp, b, nsteps, damping, residual_tol=1e-10, grad=True, 
             if rdotr < residual_tol:
                 break
         logger.debug(fmtstr % (i+1, rdotr, nf(x)))
+        # logger.info('CG steps ')
         return x
 
 

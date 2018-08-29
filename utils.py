@@ -141,13 +141,13 @@ class MultiRingBuffer(object):
         return self.dataList
 
 
-def get_flat_params_from(model,backend='pytorch'):
+def get_flat_params_from(model,backend='pytorch',ordered=False):
     """
     Get parameters from model as a single vector.
     backend signifies if a np.ndarray or torch.Tensor should be returned
     """
     params = []
-    for param in model.parameters():
+    for param in model.parameters(ordered=ordered):
         if backend == 'pytorch':
             params.append(param.data.view(-1))
         else:
@@ -157,14 +157,14 @@ def get_flat_params_from(model,backend='pytorch'):
     return flat_params
 
 
-def set_flat_params_to(model,flat_params):
+def set_flat_params_to(model,flat_params,ordered=False):
     """
     Copy data from flat_params to parameters in model.
     flat_params can be torch.Tensor or np.ndarray
     """
     prev_ind = 0
     flat_params = flat_params if isinstance(flat_params,torch.Tensor) else torch.from_numpy(flat_params)
-    for param in model.parameters():
+    for param in model.parameters(ordered=ordered):
         flat_size = int(np.prod(list(param.size())))
         param.data.copy_(flat_params[prev_ind:prev_ind + flat_size].view(param.size()))
         prev_ind += flat_size

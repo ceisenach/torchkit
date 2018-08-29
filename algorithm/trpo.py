@@ -100,6 +100,7 @@ class TRPO(TRPOBase):
         fullstep = stepdir / lm
 
         neggdotstepdir = (-loss_grad * stepdir).sum(0, keepdim=True)
+        # import pdb; pdb.set_trace()
         logger.debug('lagrange multiplier %s, grad norm: %s' % (str(lm),str(loss_grad.norm())))
 
         prev_params = ut.get_flat_params_from(model)

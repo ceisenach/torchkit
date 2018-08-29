@@ -24,8 +24,8 @@ class BasePolicy(object):
         sd = torch.load(path)
         self._net.load_state_dict(sd)
 
-    def parameters(self):
-        return self._net.parameters()
+    def parameters(self,**kwargs):
+        return self._net.parameters(**kwargs)
 
     def scale(self,action,high,low):
         return action
@@ -269,6 +269,7 @@ class Beta(BasePolicy):
         if backend == 'pytorch':
             raise NotImplementedError()
         else:
+            # import pdb; pdb.set_trace()
             Df_T = np.transpose(Df,(0,2,1))
             Dg_T = np.transpose(Dg,(0,2,1))
             I_12_Df_T = np.transpose(I_12_Df,(0,2,1))
