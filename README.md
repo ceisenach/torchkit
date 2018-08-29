@@ -42,6 +42,11 @@ For NAC
  python bin/train.py --e Platform2D-v1 --co -N 128 -a NACGauss --lrc 0.01 --lra 0.1
  python bin/train.py --e InvertedPendulum-v2 -V 1 -N 512 -a NACGauss --lrc 0.001 --lra 0.001 -u 10000 --co
 ```
+To use Beta policy instead of Gaussian, add the flags
+```
+-p Beta --nt PolicyBeta Value
+```
+
 
 
 Make seaborn confidence bands plot

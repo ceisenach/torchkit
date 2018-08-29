@@ -39,6 +39,25 @@ class DeepNet(nn.Module):
         x = F.tanh(x,save_for_jacobian)
         return x
 
+class DeepNet2(nn.Module):
+    def __init__(self, sizes = [2,2,2,2,2]):
+        super(DeepNet2, self).__init__()
+        self.affine1 = ad.modules.Linear(sizes[0],sizes[1])
+        self.affine2 = ad.modules.Linear(sizes[1],sizes[2])
+        self.affine3 = ad.modules.Linear(sizes[2],sizes[3])
+        self.affine4 = ad.modules.Linear(sizes[3],sizes[4])
+
+    def forward(self,x,save_for_jacobian=False):
+        x = self.affine1(x,save_for_jacobian)
+        x = F.softplus(x,save_for_jacobian)
+        x = self.affine2(x,save_for_jacobian)
+        x = F.softplus(x,save_for_jacobian)
+        x = self.affine3(x,save_for_jacobian)
+        x = F.softplus(x,save_for_jacobian)
+        x = self.affine4(x,save_for_jacobian)
+        x = F.softplus(x,save_for_jacobian)
+        return x
+
 
 class TestAutoDiff(ExtendedTestCase):
 
@@ -56,17 +75,32 @@ class TestAutoDiff(ExtendedTestCase):
         g2 = j.sum(dim=0,keepdim=False)
         self.assertTensorClose(g,g2)
 
-    def test_autodiff3(self):
+    def test_autodiff3(self,backend='pytorch'):
         net = SimpleNet([10,32,8])
         data = torch.randn(7,10)
-        j_g,j = self._get_both_jacobians(net,8,data)
+        j_g,j = self._get_both_jacobians(net,8,data,backend=backend)
         self.assertTensorClose(j_g.view(-1),j.view(-1))
 
-    def test_autodiff4(self):
+    def test_autodiff3_numpy(self):
+        self.test_autodiff3(backend='numpy')
+
+    def test_autodiff4(self,backend='pytorch'):
         net = DeepNet([10,16,14,25,8])
         data = torch.randn(7,10)
-        j_g,j = self._get_both_jacobians(net,8,data)
+        j_g,j = self._get_both_jacobians(net,8,data,backend=backend)
         self.assertTensorClose(j_g.view(-1),j.view(-1))
+
+    def test_autodiff4_numpy(self):
+        self.test_autodiff4(backend='numpy')
+
+    def test_autodiff5(self,backend='pytorch'):
+        net = DeepNet2([10,16,14,25,8])
+        data = torch.randn(7,10)
+        j_g,j = self._get_both_jacobians(net,8,data,backend=backend)
+        self.assertTensorClose(j_g.view(-1),j.view(-1))
+
+    def test_autodiff5_numpy(self):
+        self.test_autodiff5(backend='numpy')
 
     def test_autodiff_batch(self):
         net = DeepNet([10,16,14,25,8])
@@ -98,13 +132,14 @@ class TestAutoDiff(ExtendedTestCase):
         self.assertTensorClose(j_t.view(-1),j_n.view(-1))
 
 
-    def _get_both_jacobians(self,net,out_dim,data,mode='sum'):
+    def _get_both_jacobians(self,net,out_dim,data,mode='sum',backend='pytorch'):
         grads = []
-        ad.util.zero_jacobian(net.parameters())
+        ad.util.zero_jacobian(net.parameters(),backend=backend)
         net_out = net(data,save_for_jacobian=True)
         # Jacobian
-        net_out.jacobian(mode=mode)
-        j = ad.util.gather_jacobian(net.parameters())
+        net_out.jacobian(mode=mode,backend=backend)
+        j = ad.util.gather_jacobian(net.parameters(),backend=backend)
+        j = j if backend == 'pytorch' else torch.from_numpy(j)
 
         # Grads
         for i in range(out_dim):

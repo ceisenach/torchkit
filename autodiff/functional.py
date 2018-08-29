@@ -86,7 +86,7 @@ class Jsoftplus(object):
 
 
 
-def softplus(input,alpha=1.0,save_for_jacobian=False):
+def softplus(input,save_for_jacobian=False,alpha=1.0):
     x = input.data if isinstance(input,JTensor) else input
     if not save_for_jacobian:
         return alpha + TF.softplus(x)
