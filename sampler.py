@@ -60,6 +60,7 @@ class Sampler(object):
 
             # take step
             s_t_numpy = self._running_state(s_t_numpy)
+            # print(s_t_numpy)
             s_t = torch.from_numpy(s_t_numpy).float()
             a_t = self._policy.action(s_t)
             a_t_scaled = self._policy.scale(a_t,self._act_low,self._act_high)

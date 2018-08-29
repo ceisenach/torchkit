@@ -7,14 +7,14 @@ import optimize as opt
 import utils as ut
 import gc
 
-__all__ = ['NACGauss']
+__all__ = ['NAC']
 
-class NACGauss(AlgorithmBase):
+class NAC(AlgorithmBase):
     """
     Natural Actor-Critic for Gaussian Family
     """
     def __init__(self,policy,critic,args,**kwargs):
-        super(NACGauss,self).__init__(policy,critic,args,**kwargs)
+        super(NAC,self).__init__(policy,critic,args,**kwargs)
         self._updates = 0
         self._batch_prepare = self._batch_prepare_gae_lambda_return
         self._critic_optimizer = torch.optim.Adam(self._critic.parameters(), lr=args['lr_critic'])
