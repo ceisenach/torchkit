@@ -1,0 +1,1 @@
+from .nav2d import Platform2D
