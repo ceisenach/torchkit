@@ -1,5 +1,3 @@
-# basic navigation task
-
 # IMPORTS
 import numpy as np
 import random
@@ -10,15 +8,32 @@ from gym.envs.registration import register
 import logging
 logger = logging.getLogger(__name__)
 
-register(
-    id='OptimalProduction1-v1',
-    entry_point='environment:Platform2D',
-)
+__all__ = ['OptimalProduction']
 
+
+## Setup
 Material = namedtuple('Material', ['name', 'price', 'store_cost'])
 RecipeItem = namedtuple('RecipeItem', ['material', 'quantity'])
 Product = namedtuple('Product', ['name', 'recipe', 'price', 'store_cost'])
 
+def register_envs():
+    # Simple Production Problem
+    pl = []
+    for pn,pp in [('I',1.75),('II',2.0),('III',2.25),('IV',2.5)]:
+        pr = [RecipeItem(Material('%s.A'%pn,0.5,0.1),1.0),
+                RecipeItem(Material('%s.B'%pn,0.5,0.1),1.0),
+                RecipeItem(Material('%s.C'%pn,0.5,0.1),1.0)]
+        pl.append(Product(pn,pr,pp,0.1))
+    gamma_sampler = lambda : np.random.gamma(np.array([9.0]*4,dtype = np.float32),np.array([0.5]*4,dtype = np.float32))
+    register(
+        id='OptimalProduction1-v0',
+        entry_point='environment:OptimalProduction',
+        kwargs={'product_list':pl,'demand_distribution':gamma_sampler,'name':'1','T':1000}
+    )
+
+
+
+## Environments
 def _process_product_list(product_list):
     num_goods = len(product_list)
     num_materials_per_good = [len(g.recipe) for g in product_list]
@@ -32,7 +47,6 @@ def _process_product_list(product_list):
         product_idxs.append((last_idx,last_idx + num_materials_per_good[i]))
         last_idx = last_idx + num_materials_per_good[i]
     return num_goods,num_materials,state_names,item_prices,store_costs,product_idxs,material_quantities
-
 
 def _max_production(mstate,prod_idx,mat_q):
     amts = mstate / mat_q
@@ -49,7 +63,7 @@ class OptimalProduction(gym.Env):
         print("OptimalProduction{} - Version {}".format(name,self.__version__))
         self._product_list = product_list
         self._num_goods,self._num_materials,self._state_names,self._item_prices,self._store_costs, \
-        self._product_idxs,self._material_quantitites = _process_product_list(product_list)
+        self._product_idxs,self._material_quantities = _process_product_list(product_list)
 
         # Action Space, State Space
         low = np.array([0.0]*(self._num_goods+self._num_materials),dtype = np.float32)
@@ -61,6 +75,7 @@ class OptimalProduction(gym.Env):
         self._state = None
         self._time = 0
         self._T = T
+        self._demand_distribution = demand_distribution
 
         # initial state config
         self.reset()
@@ -93,30 +108,34 @@ class OptimalProduction(gym.Env):
                  However, official evaluations of your agent are not allowed to
                  use this for learning.
         """
-        action = np.array(action,dtype=np.float32) # make sure it is array
-        assert action.shape == self.action_space.shape, "Action Shape: %s. Should be: %s." % (str(action.shape),str(self.action_space.shape))
-        action = np.maximum(action,0.0).astype(np.float32) # threshold
+        u_t = np.array(action,dtype=np.float32) # make sure it is array
+        assert u_t.shape == self.action_space.shape, "Action Shape: %s. Should be: %s." % (str(u_t.shape),str(self.action_space.shape))
+        u_t = np.maximum(u_t,0.0).astype(np.float32) # threshold
         if self._time >= self._T:
             raise RuntimeError("Episode is done")
 
         # update state
+        N = self._num_goods
         s_t = self.state
-        l_t = _max_production()
+        l_t = _max_production(s_t[N:],self._product_idxs,self._material_quantities) # max production
+        u_t[:N] = np.minimum(u_t[:N],l_t) # threshold action
+        q_t = np.array([u_t[i]*self._material_quantities[j] for i,(si,ei) in enumerate(self._product_idxs) \
+                         for j in range(si,ei)],dtype=np.float32) # number of each material used
+        d_t = self._demand_distribution() # realized demand
+        n_t = np.minimum(s_t[:N]+u_t[:N],d_t) # number sold
+        s_tp1 = s_t
+        s_tp1[:N] = np.maximum(0.0,s_t[:N]+u_t[:N] - d_t)
+        s_tp1[N:] = s_t[N:] + u_t[N:] - q_t
 
-
-
-        self._update_state(action)
+        # calculate reward
+        r_tp1 = sum(self._item_prices[:N]*n_t) - sum(self._item_prices[N:]*u_t[N:]) - sum(self._store_costs*s_tp1)
 
         # return (S,R,T,I)
         self._time += 1
-        s_tp1 = self.state
-        r_tp1 = self._reward(s_t,s_tp1)
+        self._state = s_tp1
         terminal = self._time == self._T
 
         return s_tp1, r_tp1, terminal, {}
-
-    def _reward(self,old_state,new_state):
-        pass
 
     def reset(self):
         """
@@ -136,7 +155,6 @@ class OptimalProduction(gym.Env):
     @property
     def time(self):
         return self._time
-    
 
     def _render(self, mode='human', close=False):
         return
@@ -146,23 +164,7 @@ class OptimalProduction(gym.Env):
         np.random.seed(seed)
 
 
+register_envs()
+
 if __name__ =='__main__':
-    pl = []
-    for pn,pp in [('I',1.75),('II',2.0),('III',2.25),('IV',2.5)]:
-        pr = [RecipeItem(Material('%s.A'%pn,0.5,0.25),1.0),
-                RecipeItem(Material('%s.B'%pn,0.5,0.25),1.0),
-                RecipeItem(Material('%s.C'%pn,0.5,0.25),1.0)]
-        pl.append(Product(pn,pr,pp,0.25))
-    # print(pl)
-
-    _,_,sn,ip,sc,pi,mq =  _process_product_list(pl)
-
-
-
-    inv = np.array([0.0]*12,dtype = np.float32)
-    inv = np.array([1.,3.,4.,1.,0.5,1.,2.,3.,4.,2.,3.,4.],dtype=np.float32)
-
-    print(_max_production(inv,pi,mq))
-
-
-    env = OptimalProduction(pl,None)
+    pass

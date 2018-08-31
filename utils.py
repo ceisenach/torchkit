@@ -37,6 +37,7 @@ def experiment_argparser():
     parser.add_argument("--nk",  type=str,default=None, help="kwargs for actor and critic nets")
     parser.add_argument('--nt',type=str,nargs='+',default=['Policy','Value'], help="which network architecture to use")
     parser.add_argument("--run",  type=int,default=0, help="indicates what run number if running multiple of same experiment")
+    parser.add_argument("--rstat", action="store_true", help="use running stats to normalize states (used in Schulman's TRPO)")
 
     return parser
 
@@ -55,6 +56,7 @@ def train_params_from_args(args):
                          'ac_types': args.nt,
                          'debug' : args.debug,
                          'policy' : args.policy,
+                         'running_stat' : args.rstat,
                          'seed' : args.seed if args.seed != -1 else random.randint(0,1e8), # make a random seed
                          'num_updates' : int(args.num_updates),
                          'N' : args.N,

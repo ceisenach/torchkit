@@ -29,8 +29,8 @@ class Sampler(object):
         self._gamma = kwargs['gamma']
         # self._experience_buffer = MultiRingBuffer(exp_shapes,self._N+1,tensor_type=torch.DoubleTensor)
         self._experience_buffer = MultiRingBuffer(exp_shapes,self._N+1,tensor_type=torch.FloatTensor)
-        self._running_state = ZFilter((env.observation_space.shape[0],), clip=5)
-        self._running_reward = ZFilter((1,), demean=False, clip=10)
+        self._running_state = ZFilter((env.observation_space.shape[0],), clip=5) if kwargs['running_stat'] else None
+        # self._running_reward = ZFilter((1,), demean=False, clip=10)
         self._cr = 0.0
         self._tr = 0.0
         self._terminal = False
@@ -59,7 +59,7 @@ class Sampler(object):
                 self._terminal = False
 
             # take step
-            s_t_numpy = self._running_state(s_t_numpy)
+            s_t_numpy = self._running_state(s_t_numpy) if self._running_state is not None else s_t_numpy
             s_t = torch.from_numpy(s_t_numpy).float()
             a_t = self._policy.action(s_t)
             a_t_scaled = self._policy.scale(a_t,self._act_low,self._act_high)

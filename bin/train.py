@@ -49,6 +49,7 @@ if __name__ == '__main__':
         torch.manual_seed(ts)
 
     log_str = '\r\n###################################################\r\n' + \
+              '\tEnvironment: %s\r\n' % train_config['env'] + \
               '\tAlgorithm: %s\r\n' % train_config['alg'] + \
               '\tPolicy Class: %s\r\n' % train_config['policy'] + \
               '\tNetwork Types: (%s,%s)\r\n' % tuple(train_config['ac_types']) + \
