@@ -123,6 +123,10 @@ class OptimalProduction(gym.Env):
                          for j in range(si,ei)],dtype=np.float32) # number of each material used
         d_t = self._demand_distribution() # realized demand
         n_t = np.minimum(s_t[:N]+u_t[:N],d_t) # number sold
+        if self._time % 50 == 0:
+            logger.debug(('Time %d -- State: ' + ','.join(['%.2f']*len(s_t))) % (self._time,*tuple(s_t)))
+            logger.debug(('Time %d -- Action: ' + ','.join(['%.2f']*len(u_t))) % (self._time,*tuple(u_t)))
+
         s_tp1 = s_t
         s_tp1[:N] = np.maximum(0.0,s_t[:N]+u_t[:N] - d_t)
         s_tp1[N:] = s_t[N:] + u_t[N:] - q_t
