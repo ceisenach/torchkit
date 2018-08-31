@@ -20,6 +20,7 @@ def register_envs():
     # Simple Production Problem
     pl = []
     for pn,pp in [('I',1.75),('II',2.0),('III',2.25),('IV',2.5)]:
+    # for pn,pp in [('I',3.0),('II',3.25),('III',3.5),('IV',3.75)]:
         pr = [RecipeItem(Material('%s.A'%pn,0.5,0.1),1.0),
                 RecipeItem(Material('%s.B'%pn,0.5,0.1),1.0),
                 RecipeItem(Material('%s.C'%pn,0.5,0.1),1.0)]

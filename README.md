@@ -18,6 +18,8 @@ TRPO is a PyTorch implementation of John Schulman's original implementation.
 
 TRPO_v2 is a PyTorch implementation of OpenAI Baselines TRPO_MPI. Performance of our implementation is the same as baselines.
 
+It seems very important to use the running normalization (option --rstat).
+
 
 ## autodiff
 Light wrapper around pytorch to implement auto-differentiation of vector valued functions.
