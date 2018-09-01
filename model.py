@@ -61,7 +61,7 @@ class Value(FFNet_base):
 
 class PolicyGauss2(OrderedModule):
     def __init__(self,in_size,out_size,width=32,hidden_layers = 2,**kwargs):
-        super(PolicyGauss3, self).__init__()
+        super(PolicyGauss2, self).__init__()
         self.param_1 = FFNet_base(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
         self.param_2 = nn.Parameter(data=torch.zeros(out_size))
         self.action_log_std = self.param_2
@@ -77,6 +77,7 @@ class PolicyGauss2(OrderedModule):
         action_log_std = self.action_log_std.expand_as(out.data)
 
         return out, action_log_std
+
 
 class PolicyExp2P(OrderedModule):
     def __init__(self,in_size,out_size,width=32,hidden_layers = 2,**kwargs):
@@ -103,7 +104,7 @@ class PolicyBeta(PolicyExp2P):
         self.beta = self.param_2
 
     def forward(self,x,save_for_jacobian=False,**kwargs):
-        aout,bout = super(PolicyBeta2,self).forward(x,save_for_jacobian=save_for_jacobian,**kwargs)
+        aout,bout = super(PolicyBeta,self).forward(x,save_for_jacobian=save_for_jacobian,**kwargs)
         aout = F.softplus(aout,save_for_jacobian=save_for_jacobian)
         bout = F.softplus(bout,save_for_jacobian=save_for_jacobian)
         return aout,bout
