@@ -59,23 +59,7 @@ class Value(FFNet_base):
     def __init__(self,in_size,out_size=1,width=32,hidden_layers = 2,**kwargs):
         super(Value, self).__init__(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
 
-
-class PolicyGauss2(FFNet_base):
-    def __init__(self,in_size,out_size,width=32,hidden_layers = 2,**kwargs):
-        super(PolicyGauss2, self).__init__(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
-        self.action_log_std = nn.Parameter(data=torch.zeros(out_size))
-
-        #override output init
-        normc_initializer(self.affine_out.weight,0.01,axis=-1)
-        normc_initializer(self.affine_out.bias,0.01,axis=-1)
-
-    def forward(self,x,save_for_jacobian=False,**kwargs):
-        out = super(PolicyGauss2,self).forward(x,save_for_jacobian,**kwargs)
-        action_log_std = self.action_log_std.expand_as(out.data)
-
-        return out, action_log_std
-
-class PolicyGauss3(OrderedModule):
+class PolicyGauss2(OrderedModule):
     def __init__(self,in_size,out_size,width=32,hidden_layers = 2,**kwargs):
         super(PolicyGauss3, self).__init__()
         self.param_1 = FFNet_base(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
