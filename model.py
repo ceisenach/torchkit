@@ -59,7 +59,7 @@ class Value(FFNet_base):
     def __init__(self,in_size,out_size=1,width=32,hidden_layers = 2,**kwargs):
         super(Value, self).__init__(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
 
-class Policy(FFNet_base):
+class PolicyGauss2(FFNet_base):
     def __init__(self,in_size,out_size,width=32,hidden_layers = 2,**kwargs):
         super(Policy, self).__init__(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
         self.action_log_std = nn.Parameter(data=torch.zeros(out_size))
@@ -74,41 +74,33 @@ class Policy(FFNet_base):
 
         return out, action_log_std
 
-class PolicyBeta(OrderedModule):
+
+class PolicyExp2P(OrderedModule):
     def __init__(self,in_size,out_size,width=32,hidden_layers = 2,**kwargs):
-        super(PolicyBeta, self).__init__()
-        self.alpha = FFNet_base(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
-        self.beta = FFNet_base(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
+        super(PolicyExp2P, self).__init__()
+        self.param_1 = FFNet_base(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
+        self.param_2 = FFNet_base(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
 
         #override output init
-        normc_initializer(self.alpha.affine_out.weight,0.01,axis=-1)
-        normc_initializer(self.alpha.affine_out.bias,0.01,axis=-1)
-        normc_initializer(self.beta.affine_out.weight,0.01,axis=-1)
-        normc_initializer(self.beta.affine_out.bias,0.01,axis=-1)
+        normc_initializer(self.param_1.affine_out.weight,0.01,axis=-1)
+        normc_initializer(self.param_1.affine_out.bias,0.01,axis=-1)
+        normc_initializer(self.param_2.affine_out.weight,0.01,axis=-1)
+        normc_initializer(self.param_2.affine_out.bias,0.01,axis=-1)
 
-        self._param_order = [self.alpha,self.beta]
-
-    def forward(self,x,save_for_jacobian=False,**kwargs):
-        aout = F.softplus(self.alpha.forward(x,save_for_jacobian,**kwargs),save_for_jacobian=save_for_jacobian)
-        bout = F.softplus(self.beta.forward(x,save_for_jacobian,**kwargs),save_for_jacobian=save_for_jacobian)
-        return aout,bout
-
-
-class PolicyBeta2(OrderedModule):
-    def __init__(self,in_size,out_size,width=32,hidden_layers = 2,**kwargs):
-        super(PolicyBeta2, self).__init__()
-        self.alpha = FFNet_base(in_size,out_size,4,1,init_std=1.0,**kwargs)
-        self.beta = FFNet_base(in_size,out_size,4,1,init_std=1.0,**kwargs)
-
-        #override output init
-        normc_initializer(self.alpha.affine_out.weight,0.01,axis=-1)
-        normc_initializer(self.alpha.affine_out.bias,0.01,axis=-1)
-        normc_initializer(self.beta.affine_out.weight,0.01,axis=-1)
-        normc_initializer(self.beta.affine_out.bias,0.01,axis=-1)
-
-        self._param_order = [self.alpha,self.beta]
+        self._param_order = [self.param_1,self.param_2]
 
     def forward(self,x,save_for_jacobian=False,**kwargs):
-        aout = F.softplus(self.alpha.forward(x,save_for_jacobian,**kwargs),save_for_jacobian=save_for_jacobian)
-        bout = F.softplus(self.beta.forward(x,save_for_jacobian,**kwargs),save_for_jacobian=save_for_jacobian)
+        return self.param_1.forward(x,save_for_jacobian,**kwargs),self.param_2.forward(x,save_for_jacobian,**kwargs)
+
+class PolicyBeta(PolicyExp2P):
+    def __init__(self,*args,**kwargs):
+        super(PolicyBeta, self).__init__(*args,**kwargs)
+        self.alpha = self.param_1
+        self.beta = self.param_2
+
+    def forward(self,x,save_for_jacobian=False,**kwargs):
+        aout,bout = super(PolicyBeta2,self).forward(x,save_for_jacobian=save_for_jacobian,**kwargs)
+        aout = F.softplus(aout,save_for_jacobian=save_for_jacobian)
+        bout = F.softplus(bout,save_for_jacobian=save_for_jacobian)
         return aout,bout
+
