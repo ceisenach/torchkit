@@ -59,9 +59,10 @@ class Value(FFNet_base):
     def __init__(self,in_size,out_size=1,width=32,hidden_layers = 2,**kwargs):
         super(Value, self).__init__(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
 
+
 class PolicyGauss2(FFNet_base):
     def __init__(self,in_size,out_size,width=32,hidden_layers = 2,**kwargs):
-        super(Policy, self).__init__(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
+        super(PolicyGauss2, self).__init__(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
         self.action_log_std = nn.Parameter(data=torch.zeros(out_size))
 
         #override output init
@@ -69,11 +70,29 @@ class PolicyGauss2(FFNet_base):
         normc_initializer(self.affine_out.bias,0.01,axis=-1)
 
     def forward(self,x,save_for_jacobian=False,**kwargs):
-        out = super(Policy,self).forward(x,save_for_jacobian,**kwargs)
+        out = super(PolicyGauss2,self).forward(x,save_for_jacobian,**kwargs)
         action_log_std = self.action_log_std.expand_as(out.data)
 
         return out, action_log_std
 
+class PolicyGauss3(OrderedModule):
+    def __init__(self,in_size,out_size,width=32,hidden_layers = 2,**kwargs):
+        super(PolicyGauss3, self).__init__()
+        self.param_1 = FFNet_base(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
+        self.param_2 = nn.Parameter(data=torch.zeros(out_size))
+        self.action_log_std = self.param_2
+
+        #override output init
+        normc_initializer(self.param_1.affine_out.weight,0.01,axis=-1)
+        normc_initializer(self.param_1.affine_out.bias,0.01,axis=-1)
+
+        self._param_order = [self.param_1,self.param_2]
+
+    def forward(self,x,save_for_jacobian=False,**kwargs):
+        out = self.param_1.forward(x,save_for_jacobian,**kwargs)
+        action_log_std = self.action_log_std.expand_as(out.data)
+
+        return out, action_log_std
 
 class PolicyExp2P(OrderedModule):
     def __init__(self,in_size,out_size,width=32,hidden_layers = 2,**kwargs):
@@ -92,6 +111,7 @@ class PolicyExp2P(OrderedModule):
     def forward(self,x,save_for_jacobian=False,**kwargs):
         return self.param_1.forward(x,save_for_jacobian,**kwargs),self.param_2.forward(x,save_for_jacobian,**kwargs)
 
+
 class PolicyBeta(PolicyExp2P):
     def __init__(self,*args,**kwargs):
         super(PolicyBeta, self).__init__(*args,**kwargs)
@@ -104,3 +124,15 @@ class PolicyBeta(PolicyExp2P):
         bout = F.softplus(bout,save_for_jacobian=save_for_jacobian)
         return aout,bout
 
+
+class PolicyGauss(PolicyExp2P):
+    def __init__(self,*args,**kwargs):
+        super(PolicyGauss, self).__init__(*args,**kwargs)
+        self.alpha = self.param_1
+        self.beta = self.param_2
+
+    def forward(self,x,save_for_jacobian=False,**kwargs):
+        aout,bout = super(PolicyBeta2,self).forward(x,save_for_jacobian=save_for_jacobian,**kwargs)
+        aout = F.softplus(aout,save_for_jacobian=save_for_jacobian)
+        bout = F.softplus(bout,save_for_jacobian=save_for_jacobian)
+        return aout,bout

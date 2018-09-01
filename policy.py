@@ -160,6 +160,7 @@ class Gaussian(BasePolicy):
             return g
         else:
             N,d_1,d_2 = DmuT.shape
+            # import pdb; pdb.set_trace()
             v1 = v[:d_1]
             v2 = v[d_1:]
 
