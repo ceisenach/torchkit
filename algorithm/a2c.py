@@ -35,7 +35,7 @@ class A2C(AlgorithmBase):
 
         # actor loss
         self._actor_optimizer.zero_grad()
-        lf_actor = torch.mean(U_t.view(-1) * self._policy.nll(A_t_hat,S_t.detach()))
+        lf_actor = - torch.mean(U_t.view(-1) * self._policy.log_likelihood(A_t_hat,S_t.detach()))
         lf_actor.backward()
         self._actor_optimizer.step()
 

@@ -25,7 +25,7 @@ class NAC(AlgorithmBase):
         lg = None
         with torch.enable_grad():
             # Get loss gradient
-            lf_actor = torch.mean(U_t.view(-1) * self._policy.nll(A_t_hat,S_t.detach()))
+            lf_actor = - torch.mean(U_t.view(-1) * self._policy.log_likelihood(A_t_hat,S_t.detach()))
             # import pdb; pdb.set_trace()
             grads = torch.autograd.grad(lf_actor, self._policy.parameters(ordered=True))
             lg = torch.cat([grad.view(-1) for grad in grads]).data
@@ -80,7 +80,7 @@ class NAC_LS(NAC):
         lg = None
         with torch.enable_grad():
             # Get loss gradient
-            lf_actor = torch.mean(U_t.view(-1) * self._policy.nll(A_t_hat,S_t.detach()))
+            lf_actor = - torch.mean(U_t.view(-1) * self._policy.log_likelihood(A_t_hat,S_t.detach()))
             grads = torch.autograd.grad(lf_actor, self._policy.parameters(ordered=True))
             lg_t = torch.cat([grad.view(-1) for grad in grads]).data
             lg = lg_t if self._args['backend'] == 'pytorch' else lg_t.numpy()

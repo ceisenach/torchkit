@@ -34,15 +34,15 @@ class Gamma(BasePolicy):
         kl = delta_pgamma + delta_lgamma
         return kl.sum(1, keepdim=True)
 
-    def nll(self,a_t_hat,s_t):
+    def log_likelihood(self,a_t_hat,s_t):
         alpha, beta = self._net(s_t.detach())
         lx = torch.log(a_t_hat)
         l1mx = torch.log(1.-a_t_hat)
         lgamma = torch.lgamma(alpha+beta) - torch.lgamma(alpha) - torch.lgamma(beta)
         log_prob = (alpha-1.0)*lx + (beta-1.)*l1mx + lgamma
-        nlog_prob = -log_prob.sum(dim=1)
-        assert nlog_prob.dim() == 1
-        return nlog_prob
+        log_prob = log_prob.sum(dim=1)
+        assert log_prob.dim() == 1
+        return log_prob
 
 
     def sample(self,s_t,deterministic=False,**kwargs):

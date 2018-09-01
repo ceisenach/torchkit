@@ -59,11 +59,11 @@ class TRPOBase(AlgorithmBase):
 
         # get_loss, get_kl needed to reconstruct graph for higher order gradients
         with torch.no_grad():
-            fixed_log_prob = -self._policy.nll(A_t,S_t)
+            fixed_log_prob = self._policy.log_likelihood(A_t,S_t)
             output_old = self._actor(S_t)
 
         def get_loss(volatile=False):
-            log_prob = -self._policy.nll(A_t,S_t)
+            log_prob = self._policy.log_likelihood(A_t,S_t)
             action_loss = - U_t.view(-1) * torch.exp(log_prob - fixed_log_prob)
             return action_loss.mean()
 

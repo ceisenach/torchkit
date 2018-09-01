@@ -31,13 +31,13 @@ class Gaussian(BasePolicy):
         kl = log_std1 - log_std0 + (std0.pow(2) + (mean0 - mean1).pow(2)) / (2.0 * std1.pow(2)) - 0.5
         return kl.sum(1, keepdim=True)
 
-    def nll(self,a_t_hat,s_t):
+    def log_likelihood(self,a_t_hat,s_t):
         action_means, action_log_stds = self._net(s_t)
         action_stds = torch.exp(action_log_stds)
         var = action_stds.pow(2)
 
         log_prob = -(a_t_hat - action_means).pow(2) / (2 * var) - action_log_stds #- 0.5 * math.log(2 * math.pi)
-        log_prob = - log_prob.sum(1)
+        log_prob = log_prob.sum(1)
         assert log_prob.dim() == 1
         return log_prob
 
