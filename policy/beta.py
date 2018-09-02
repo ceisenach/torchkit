@@ -53,13 +53,16 @@ class Beta(ExponentialFamily2P):
         pgab = torch.polygamma(1,alpha.data+beta.data)
         pga = torch.polygamma(1,alpha.data)
         pgb = torch.polygamma(1,beta.data)
+        I_11 = pga-pgab
+        I_12 = -pgab
+        I_22 = pgb-pgab
 
         if backend == 'pytorch':
-            raise RuntimeError('Not implemented')
+            pass
         elif backend == 'numpy':        
-            I_11 = (pga-pgab).numpy()
-            I_12 = (-pgab).numpy()
-            I_22 = (pgb-pgab).numpy()
+            I_11 = I_11.numpy()
+            I_12 = I_12.numpy()
+            I_22 = I_22.numpy()
         else:
             raise RuntimeError()
 

@@ -70,7 +70,7 @@ class PolicyGauss2(OrderedModule):
         normc_initializer(self.param_1.affine_out.weight,0.01,axis=-1)
         normc_initializer(self.param_1.affine_out.bias,0.01,axis=-1)
 
-        self._param_order = [self.param_1,self.param_2]
+        # self._param_order = [self.param_1,self.param_2]
 
     def forward(self,x,save_for_jacobian=False,**kwargs):
         out = self.param_1.forward(x,save_for_jacobian,**kwargs)

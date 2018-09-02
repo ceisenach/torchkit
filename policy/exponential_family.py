@@ -54,10 +54,12 @@ class ExponentialFamily2P(BasePolicy):
         Dg = ad.util.gather_jacobian(self._net.param_2.parameters(),backend=backend)
         
         I_11,I_12,I_22 = self.fisher_information_params(param_1,param_2,backend=backend)
-        import pdb; pdb.set_trace()
 
         if backend == 'pytorch':
-            raise RuntimeError()
+            # import pdb; pdb.set_trace()
+            I_11 = I_11.unsqueeze(-1).expand(Df.shape)
+            I_12 = I_12.unsqueeze(-1).expand(Df.shape)
+            I_22 = I_22.unsqueeze(-1).expand(Dg.shape)
         elif  backend == 'numpy':
             I_11 = np.tile(np.expand_dims(I_11,axis=2),(1,1,Df.shape[2]))
             I_12 = np.tile(np.expand_dims(I_12,axis=2),(1,1,Df.shape[2]))
@@ -73,9 +75,45 @@ class ExponentialFamily2P(BasePolicy):
         return Df,Dg,I_11_Df,I_12_Df,I_22_Dg
 
 
+
     def fisher_vector_product(self,Df,Dg,I_11_Df,I_12_Df,I_22_Dg,v,backend='pytorch'):
         if backend == 'pytorch':
-            raise NotImplementedError()
+            # Df_T = Df.transpose(1,2).contiguous()
+            # Dg_T = Dg.transpose(1,2).contiguous()
+            # I_12_Df = I_12_Df.transpose(1,2).contiguous()
+            Df_T = Df.transpose(1,2)
+            Dg_T = Dg.transpose(1,2)
+            I_12_Df_T = I_12_Df.transpose(1,2)
+
+            v = v.detach()
+            N,d_2,d_1 = Df.shape
+            _,_,d_1_g = Dg.shape
+            v1 = v[:d_1]
+            v2 = v[d_1:]
+            # import pdb; pdb.set_trace()
+            v1batched = v1.unsqueeze(0).expand(N,d_1)
+            v2batched = v2.unsqueeze(0).expand(N,d_1_g)
+
+            # calculate upper partition
+            g1_1 = torch.bmm(I_11_Df,v1batched.unsqueeze(-1))
+            g1_1 = torch.bmm(Df_T,g1_1)
+            g1_2 = torch.bmm(Dg,v2batched.unsqueeze(-1))
+            g1_2 = torch.bmm(I_12_Df_T,g1_2)
+            g1 = g1_1 + g1_2
+            g1 = (1./N) * torch.sum(g1,dim=0).squeeze()
+
+            # calculate lower partition
+            g2_1 = torch.bmm(I_12_Df,v1batched.unsqueeze(-1))
+            g2_1 = torch.bmm(Dg_T,g2_1)
+            g2_2 = torch.bmm(I_22_Dg,v2batched.unsqueeze(-1))
+            g2_2 = torch.bmm(Dg_T,g2_2)
+            g2 = g2_1 + g2_2
+            g2 = (1./N) * torch.sum(g2,dim=0).squeeze()
+
+            # combine and return
+            g = torch.cat([g1,g2],dim=0).data
+            return g
+
         elif backend == 'numpy':
             # import pdb; pdb.set_trace()
             Df_T = np.transpose(Df,(0,2,1))
@@ -113,7 +151,6 @@ class ExponentialFamily2P(BasePolicy):
 
             # combine and return
             g = np.concatenate([g1,g2],axis=0)
-
             return g
         else:
             raise RuntimeError()

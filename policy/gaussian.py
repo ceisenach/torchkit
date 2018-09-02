@@ -123,6 +123,7 @@ class Gaussian(BasePolicy):
             v2 = v[d_1:]
 
             # calculate upper partition
+            import pdb; pdb.set_trace()
             v1batched = v1.unsqueeze(0).expand(N,d_1)
             g1 = torch.bmm(Ig_11_Dmu,v1batched.unsqueeze(-1))
             g1 = torch.bmm(DmuT,g1)
