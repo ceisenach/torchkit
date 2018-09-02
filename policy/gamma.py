@@ -78,8 +78,8 @@ class Gamma(BasePolicy):
         alpha,beta,Dmu = None,None,None
         ad.util.zero_jacobian(self._net.parameters(),backend='numpy')
         alpha, beta = self._net(states,save_for_jacobian=True)
-        alpha.jacobian(mode='batch',backend='numpy')
-        beta.jacobian(mode='batch',backend='numpy')
+        alpha.differentiate(mode='batch',backend='numpy')
+        beta.differentiate(mode='batch',backend='numpy')
         Df = ad.util.gather_jacobian(self._net.alpha.parameters(),backend='numpy')
         Dg = ad.util.gather_jacobian(self._net.beta.parameters(),backend='numpy')
         

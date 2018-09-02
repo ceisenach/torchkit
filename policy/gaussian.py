@@ -76,7 +76,7 @@ class Gaussian(BasePolicy):
         act_mean,act_log_std,Dmu = None,None,None
         ad.util.zero_jacobian(self._net.parameters())
         act_mean, act_log_std = self._net(states,save_for_jacobian=True)
-        act_mean.jacobian(mode='batch')
+        act_mean.differentiate(mode='batch')
         Dmu = ad.util.gather_jacobian(self._net.parameters())
 
         # Step 2 -- pre-compute products
@@ -99,9 +99,9 @@ class Gaussian(BasePolicy):
         act_mean,act_log_std,Dmu = None,None,None
         ad.util.zero_jacobian(self._net.parameters(),backend='numpy')
         act_mean, act_log_std = self._net(states,save_for_jacobian=True)
-        act_mean.jacobian(mode='batch',backend='numpy')
+        act_mean.differentiate(mode='batch',backend='numpy')
         Dmu = ad.util.gather_jacobian(self._net.parameters(),backend='numpy')
-        act_log_std = act_log_std.detach().numpy()
+        act_log_std = act_log_std.data.detach().numpy()
         act_std = np.exp(act_log_std[0])
         act_std_inv = 1./act_std
         act_std_inv2 = act_std_inv ** 2

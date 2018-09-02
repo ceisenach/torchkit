@@ -49,8 +49,8 @@ class ExponentialFamily2P(BasePolicy):
         ad.util.zero_jacobian(self._net.parameters(),backend=backend)
         import pdb; pdb.set_trace()
         param_1, param_2 = self._net(states,save_for_jacobian=True)
-        param_1.jacobian(mode='batch',backend=backend)
-        param_2.jacobian(mode='batch',backend=backend)
+        param_1.differentiate(mode='batch',backend=backend)
+        param_2.differentiate(mode='batch',backend=backend)
         Df = ad.util.gather_jacobian(self._net.param_1.parameters(),backend=backend)
         Dg = ad.util.gather_jacobian(self._net.param_2.parameters(),backend=backend)
         

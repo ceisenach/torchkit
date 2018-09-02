@@ -74,7 +74,7 @@ class PolicyGauss2(OrderedModule):
 
     def forward(self,x,save_for_jacobian=False,**kwargs):
         out = self.param_1.forward(x,save_for_jacobian,**kwargs)
-        action_log_std = self.action_log_std.expand_as(out.data)
+        action_log_std = F.expand(self.action_log_std,out.data.shape,save_for_jacobian=save_for_jacobian)
 
         return out, action_log_std
 
@@ -113,11 +113,7 @@ class PolicyBeta(PolicyExp2P):
 class PolicyGauss(PolicyExp2P):
     def __init__(self,*args,**kwargs):
         super(PolicyGauss, self).__init__(*args,**kwargs)
-        self.alpha = self.param_1
-        self.beta = self.param_2
 
     def forward(self,x,save_for_jacobian=False,**kwargs):
-        aout,bout = super(PolicyBeta2,self).forward(x,save_for_jacobian=save_for_jacobian,**kwargs)
-        aout = F.softplus(aout,save_for_jacobian=save_for_jacobian)
-        bout = F.softplus(bout,save_for_jacobian=save_for_jacobian)
+        aout,bout = super(PolicyGauss,self).forward(x,save_for_jacobian=save_for_jacobian,**kwargs)
         return aout,bout

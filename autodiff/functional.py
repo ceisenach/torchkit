@@ -4,7 +4,7 @@ import numpy as np
 import logging
 logger = logging.getLogger(__name__)
 
-from .core import JTensor
+from .core import JTensor, JParameter
 
 __all__ = ['tanh']
 
@@ -35,7 +35,7 @@ class Jtanh(object):
 
         # continue down graph
         if isinstance(input,JTensor):
-            input.jacobian(in_grad,mode)
+            input.differentiate(in_grad,mode)
         else:
             logger.debug('Compute graph leaf')
 
@@ -80,7 +80,7 @@ class Jsoftplus(object):
 
         # continue down graph
         if isinstance(input,JTensor):
-            input.jacobian(in_grad,mode)
+            input.differentiate(in_grad,mode)
         else:
             logger.debug('Compute graph leaf')
 
@@ -93,3 +93,21 @@ def softplus(input,save_for_jacobian=False,alpha=1.0):
 
     out = alpha + TF.softplus(x)
     return JTensor(out,Jsoftplus,input)
+
+
+class JExpand(object):
+    @staticmethod
+    def _compute_jacobian(out_grad,input,mode):
+        in_grad = out_grad
+
+        # continue down graph
+        if isinstance(input,JTensor) or isinstance(input,JParameter):
+            input.differentiate(in_grad,mode)
+        else:
+            logger.debug('Compute graph leaf')
+
+
+def expand(input,dims,save_for_jacobian=False):
+    x = input.data if isinstance(input,JTensor) else input
+    x = x.expand(dims)
+    return x if not save_for_jacobian else JTensor(x,JExpand,input)

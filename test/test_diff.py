@@ -117,13 +117,13 @@ class TestAutoDiff(ExtendedTestCase):
         # Torch implementation
         ad.util.zero_jacobian(net.parameters())
         net_out = net(data,save_for_jacobian=True)
-        net_out.jacobian(mode='batch')
+        net_out.differentiate(mode='batch')
         j_N_t = ad.util.gather_jacobian(net.parameters())
 
         # Numpy backend
         ad.util.zero_jacobian(net.parameters(),backend='numpy')
         net_out = net(data,save_for_jacobian=True)
-        net_out.jacobian(mode='batch',backend='numpy')
+        net_out.differentiate(mode='batch',backend='numpy')
         j_N_n = ad.util.gather_jacobian(net.parameters(),backend='numpy')
 
         # Compare
@@ -137,7 +137,7 @@ class TestAutoDiff(ExtendedTestCase):
         ad.util.zero_jacobian(net.parameters(),backend=backend)
         net_out = net(data,save_for_jacobian=True)
         # Jacobian
-        net_out.jacobian(mode=mode,backend=backend)
+        net_out.differentiate(mode=mode,backend=backend)
         j = ad.util.gather_jacobian(net.parameters(),backend=backend)
         j = j if backend == 'pytorch' else torch.from_numpy(j)
 
@@ -161,7 +161,7 @@ class TestAutoDiff(ExtendedTestCase):
         loss = loss_fn(net_out.data)
   
         # Jacobian
-        net_out.jacobian(mode='sum')
+        net_out.differentiate(mode='sum')
         j = ad.util.gather_jacobian(net.parameters())
 
         # Grad

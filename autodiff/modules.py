@@ -87,7 +87,7 @@ class Linear(Module):
 
         # STEP 4 - call Jacobian on inputs
         if isinstance(input,JTensor):
-            input.jacobian(in_grad,mode)
+            input.differentiate(in_grad,mode)
         else:
             logger.debug('Compute graph leaf')
 

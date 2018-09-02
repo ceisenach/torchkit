@@ -95,6 +95,13 @@ class JParameter(nn.Parameter):
             return copy.deepcopy(self._jacobian.numpy()) if isinstance(self._jacobian,torch.Tensor) else copy.deepcopy(self._jacobian)
         return None
 
+    def parameters(self):
+        return [self]
+
+    def differentiate(self,in_grad = None,mode='sum',backend=None):
+        import pdb; pdb.set_trace()
+        self.update_jacobian_(in_grad,mode)
+
 
 class JTensor(object):
     def __init__(self,data,creator,jacobian_info):
@@ -106,7 +113,7 @@ class JTensor(object):
     def __repr__(self):
         return 'JTensor containing:\n' + self.data.__repr__()
 
-    def jacobian(self,in_grad = None,mode='sum',backend=None):
+    def differentiate(self,in_grad = None,mode='sum',backend=None):
         if in_grad is None:
             N = self.data.shape[0]
             d = self.data.shape[1]
