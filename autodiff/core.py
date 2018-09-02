@@ -99,7 +99,7 @@ class JParameter(nn.Parameter):
         return [self]
 
     def differentiate(self,in_grad = None,mode='sum',backend=None):
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         self.update_jacobian_(in_grad,mode)
 
 
