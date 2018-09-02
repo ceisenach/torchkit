@@ -30,7 +30,8 @@ class Beta(ExponentialFamily2P):
         tpab = torch.polygamma(0,alpha0 + beta0)
         delta_pgamma = (alpha0-alpha1)*(torch.polygamma(0,alpha0) - tpab) + (beta0-beta1)*(torch.polygamma(0,beta0) - tpab)
         kl = delta_pgamma + delta_lgamma
-        return kl.sum(1, keepdim=True)
+        kl = kl.sum(1, keepdim=True)
+        return kl
 
     def log_likelihood(self,a_t_hat,s_t):
         alpha, beta = self._net(s_t.detach())

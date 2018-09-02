@@ -110,6 +110,19 @@ class PolicyBeta(PolicyExp2P):
         return aout,bout
 
 
+class PolicyGamma(PolicyExp2P):
+    def __init__(self,*args,**kwargs):
+        super(PolicyGamma, self).__init__(*args,**kwargs)
+        self.alpha = self.param_1
+        self.beta = self.param_2
+
+    def forward(self,x,save_for_jacobian=False,**kwargs):
+        aout,bout = super(PolicyGamma,self).forward(x,save_for_jacobian=save_for_jacobian,**kwargs)
+        aout = F.softplus(aout,alpha=0.0,save_for_jacobian=save_for_jacobian)
+        bout = F.softplus(bout,alpha=0.0,save_for_jacobian=save_for_jacobian)
+        return aout,bout
+
+
 class PolicyGauss(PolicyExp2P):
     def __init__(self,*args,**kwargs):
         super(PolicyGauss, self).__init__(*args,**kwargs)

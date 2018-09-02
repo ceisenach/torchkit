@@ -133,7 +133,6 @@ class TRPO_v2(TRPOBase):
         Fvp = lambda v : fisher_vector_product(get_kl,v,model)
         stepdir = opt.conjugate_gradients(Fvp, -loss_grad, 10, damping)
         shs = 0.5 * (stepdir * (Fvp(stepdir)+damping*stepdir)).sum(0)
-
         lm = torch.sqrt(shs / max_kl).item()
         fullstep = stepdir / lm
         expected_improve = (-loss_grad * stepdir).sum(0, keepdim=True)
