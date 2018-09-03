@@ -22,17 +22,15 @@ class Gaussian(ExponentialFamily2P):
     of a Gaussian model. The covariance is a diagonal matrix.
     """
     def __init__(self,acnet,**kwargs):
-        super(Gaussian2,self).__init__(acnet,**kwargs)
+        super(Gaussian,self).__init__(acnet,**kwargs)
 
     def kl_divergence(self,states,mean0,log_std0):
         """
         KL(pi_old || pi_new)
         """
         std0 = torch.exp(log_std0).detach()
-
         mean1, log_std1 = self._net(Variable(states))
         std1 = torch.exp(log_std1)
-
         kl = log_std1 - log_std0 + (std0.pow(2) + (mean0 - mean1).pow(2)) / (2.0 * std1.pow(2)) - 0.5
         return kl.sum(1, keepdim=True)
 
@@ -40,7 +38,6 @@ class Gaussian(ExponentialFamily2P):
         action_means, action_log_stds = self._net(s_t)
         action_stds = torch.exp(action_log_stds)
         var = action_stds.pow(2)
-
         log_prob = -(a_t_hat - action_means).pow(2) / (2 * var) - action_log_stds #- 0.5 * math.log(2 * math.pi)
         log_prob = log_prob.sum(1)
         assert log_prob.dim() == 1

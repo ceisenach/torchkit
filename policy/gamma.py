@@ -24,17 +24,15 @@ class Gamma(ExponentialFamily2P):
         """
         KL(pi_old || pi_new). alpha0, beta0 == pi_old
         """
-        # import pdb; pdb.set_trace()
         alpha1, beta1 = self._net(states.detach())
-        lb0 = torch.log(beta0)
-        I = torch.sum(alpha0*lb0 - alpha1*torch.log(beta1),dim=1,keepdim=True)
-        II = torch.sum((alpha0-alpha1)*(torch.polygamma(0,alpha0) - lb0),dim=1,keepdim=True)
-        III = torch.sum(torch.lgamma(alpha1) - torch.lgamma(alpha0),dim=1,keepdim=True)
-        kl = I+II+III
+        I = torch.sum(alpha1*(torch.log(beta0) - torch.log(beta1)),dim=1,keepdim=True)
+        II = torch.sum((alpha0-alpha1)*torch.polygamma(0,alpha0),dim=1,keepdim=True)
+        III = torch.sum((beta1-beta0)*(alpha0/beta0),dim=1,keepdim=True)
+        IV = torch.sum(torch.lgamma(alpha1) - torch.lgamma(alpha0),dim=1,keepdim=True)
+        kl = I+II+III+IV
         return kl
 
     def log_likelihood(self,a_t_hat,s_t):
-        # import pdb; pdb.set_trace()
         alpha, beta = self._net(s_t.detach())
         log_prob = alpha*torch.log(beta) + (alpha-1.)*torch.log(a_t_hat) - beta*a_t_hat - torch.lgamma(alpha)
         log_prob = log_prob.sum(dim=1)
