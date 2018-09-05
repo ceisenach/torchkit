@@ -8,6 +8,9 @@ from gym.envs.registration import register
 import logging
 logger = logging.getLogger(__name__)
 
+from . import NumpyEnv
+
+
 __all__ = ['OptimalProduction']
 
 
@@ -54,7 +57,7 @@ def _max_production(mstate,prod_idx,mat_q):
     return np.array([min(amts[si:ei]) for i,(si,ei) in enumerate(prod_idx)],dtype=np.float32)
 
 
-class OptimalProduction(gym.Env):
+class OptimalProduction(NumpyEnv):
     """
     Optimal Production Task
     Ordering of State Representation is goods then ingredients, in the order they appear.
@@ -81,7 +84,7 @@ class OptimalProduction(gym.Env):
         # initial state config
         self.reset()
 
-    def step(self, action):
+    def _step(self, action):
         """
         The agent takes a step in the environment.
         Parameters

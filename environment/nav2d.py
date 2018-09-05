@@ -9,12 +9,15 @@ from gym.envs.registration import register
 import logging
 logger = logging.getLogger(__name__)
 
+from . import NumpyEnv
+
+
 register(
     id='Platform2D-v1',
     entry_point='environment:Platform2D',
 )
 
-class Platform2D(gym.Env):
+class Platform2D(NumpyEnv):
     """
     2D Platform Navigation Task.
     Action space: R^2, interpreted as a direction
@@ -56,7 +59,7 @@ class Platform2D(gym.Env):
         if 'OOB_MULT' in kwargs:
             self.OOB_MULT = kwargs['OOB_MULT']
 
-    def step(self, action):
+    def _step(self, action):
         """
         The agent takes a step in the environment.
         Parameters
@@ -84,7 +87,6 @@ class Platform2D(gym.Env):
                  However, official evaluations of your agent are not allowed to
                  use this for learning.
         """
-        action = np.array(action,dtype=np.float32) # make sure it is array
         if np.linalg.norm(self._agent_location - self.END_POS) < self.EPS:
             raise RuntimeError("Episode is done")
 

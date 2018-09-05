@@ -8,7 +8,8 @@ def get_list_params(data):
     list_params = []
     for k in data:
         if isinstance(data[k],list):
-            print(k)
+            list_params.append(k)
+
 
 if __name__ == '__main__':
     # LOAD CONFIG FILE
@@ -18,5 +19,4 @@ if __name__ == '__main__':
 
     with open(os.path.join(EXPERIMENT_DIR,args.name+'.json')) as f:
         data = json.load(f)
-
-
+    
