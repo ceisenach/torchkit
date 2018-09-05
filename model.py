@@ -130,3 +130,12 @@ class PolicyGauss(PolicyExp2P):
     def forward(self,x,save_for_jacobian=False,**kwargs):
         aout,bout = super(PolicyGauss,self).forward(x,save_for_jacobian=save_for_jacobian,**kwargs)
         return aout,bout
+
+class PolicyGauss3(PolicyExp2P):
+    def __init__(self,*args,**kwargs):
+        super(PolicyGauss, self).__init__(*args,**kwargs)
+
+    def forward(self,x,save_for_jacobian=False,**kwargs):
+        aout,bout = super(PolicyGauss,self).forward(x,save_for_jacobian=save_for_jacobian,**kwargs)
+        bout = F.softplus(bout,alpha=0.0,save_for_jacobian=save_for_jacobian)
+        return aout,bout
