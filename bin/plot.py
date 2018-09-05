@@ -43,7 +43,8 @@ def plot_argparser():
     parser.add_argument("-t", "--title", type=str, default='Comparison Plot', help='Title for the Plot')
     parser.add_argument("-p", "--plot", type=str, default='both', help="plot_type")
     parser.add_argument("-o", "--odir", type=str, default='out', help="out_directory")
-    parser.add_argument("--min", type=float, default=None, help="min reward")
+    parser.add_argument("--minr", type=float, default=None, help="min reward")
+    parser.add_argument("--maxt", type=int, default=1e20, help="max time")
 
     return parser
 
@@ -73,9 +74,9 @@ def plot_all_files(file_list,color,marker):
         update_filt = low_pass_filter(cr[:,TIME_COLUMN])
         plt.plot(update_filt,cr_filt,color=color,marker=marker)
 
-def timeseries_dataframe(file_list,algorithm_name,minimum=None):
+def timeseries_dataframe(file_list,algorithm_name,minimum=None,min_max_time=None):
     crs = []
-    min_max = 1e20
+    min_max = 1e20 if min_max_time is None else min_max_time
     for f in file_list:
         cr = np.load(f)
         cr[:,REWARD_COLUMN] = cr[:,REWARD_COLUMN] if minimum is None else np.maximum(cr[:,REWARD_COLUMN],minimum)
@@ -111,8 +112,8 @@ def knn_regression(cr,x,weights='distance',n_neighbors=8):
     return cr_new
 
 
-def sns_plot(all_cr_files,name_list,title,plot_out,minimum=None):
-    dfs = [timeseries_dataframe(crf,name,minimum=minimum) for crf,name in zip(all_cr_files,name_list)]
+def sns_plot(all_cr_files,name_list,title,plot_out,minimum=None,min_max_time=None):
+    dfs = [timeseries_dataframe(crf,name,minimum,min_max_time) for crf,name in zip(all_cr_files,name_list)]
     df = pd.concat(dfs,ignore_index=True)
     sns_plot = sns.tsplot(data=df, time=TIME_NAME, condition=CONDITION_NAME, unit='Run', value=REWARD_NAME)
     plt.title(title)
@@ -146,11 +147,11 @@ if __name__ == '__main__':
         tseries_plot(all_cr_files,plot_out)
     elif args.plot == 'sns':
         plot_out = os.path.join(args.odir,'plot_sns.pdf')
-        sns_plot(all_cr_files,name_list,args.title,plot_out,args.min)
+        sns_plot(all_cr_files,name_list,args.title,plot_out,args.minr,args.maxt)
     elif args.plot == 'both':
         plot_out = os.path.join(args.odir,'plot_tseries.pdf')
         tseries_plot(all_cr_files,plot_out)
         plot_out = os.path.join(args.odir,'plot_sns.pdf')
-        sns_plot(all_cr_files,name_list,plot_out,args.min)
+        sns_plot(all_cr_files,name_list,plot_out,args.minr,args.maxt)
     else:
         raise RuntimeError('Plot: %s, is not valid' % args.plot)
