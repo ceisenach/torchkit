@@ -71,6 +71,13 @@ class Gaussian(ExponentialFamily2P):
             return I_11,I_12,I_22
 
 
+
+
+
+
+
+
+
 class Gaussian2(BasePolicy):
     """
     Gaussian Policy.
