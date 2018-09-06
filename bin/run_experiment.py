@@ -19,20 +19,21 @@ def add_val(di,keys,vals):
 
     return udi
 
-def get_train_configs(data,seeds):
+def get_train_configs(data,seeds,name):
     list_params = []
     for k in data:
         if isinstance(data[k],list):
             list_params.append(k)
     tc = []
     if len(list_params) == 0:
-        tc = tc + [add_val(data,['seed','run'],[s,i]) for i,s in enumerate(seeds)]
+        odir = os.path.join(data['odir'],name)
+        tc = tc + [add_val(data,['seed','run','odir'],[s,i,odir]) for i,s in enumerate(seeds)]
     elif len(list_params) == 1:
         k = list_params[0]
         for p in data[k]:
             subdir = k + '_%s' % str(p)
             odir = os.path.join(data['odir'],os.path.join(args.name,subdir))
-            tc = tc + [add_val(data,['seed','run',list_params[0],'odir'],[s,i,p,odir]) for i,s in enumerate(seeds)]
+            tc = tc + [add_val(data,['seed','run',k,'odir'],[s,i,p,odir]) for i,s in enumerate(seeds)]
     else:
         raise RuntimeError('Not Supported Yet')
 
@@ -55,7 +56,7 @@ if __name__ == '__main__':
     num_seeds = config.pop('num_seeds')
     assert num_seeds <= len(seeds),"Too many seeds specified"
     seeds = seeds[:num_seeds]
-    tcs = get_train_configs(config,seeds)
+    tcs = get_train_configs(config,seeds,args.name)
 
     # RUN EXPERIMENTS
     with Pool(args.num_proc) as p:
