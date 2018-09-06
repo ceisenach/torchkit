@@ -59,9 +59,9 @@ class Value(FFNet_base):
     def __init__(self,in_size,out_size=1,width=32,hidden_layers = 2,**kwargs):
         super(Value, self).__init__(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
 
-class PolicyGauss2(OrderedModule):
+class GaussianML2(OrderedModule):
     def __init__(self,in_size,out_size,width=32,hidden_layers = 2,**kwargs):
-        super(PolicyGauss2, self).__init__()
+        super(GaussianML2, self).__init__()
         self.param_1 = FFNet_base(in_size,out_size,width,hidden_layers,init_std=1.0,**kwargs)
         self.param_2 = nn.Parameter(data=torch.zeros(out_size))
         self.action_log_std = self.param_2
@@ -123,19 +123,19 @@ class PolicyGamma(PolicyExp2P):
         return aout,bout
 
 
-class PolicyGauss(PolicyExp2P):
+class GaussianML(PolicyExp2P):
     def __init__(self,*args,**kwargs):
-        super(PolicyGauss, self).__init__(*args,**kwargs)
+        super(GaussianML, self).__init__(*args,**kwargs)
 
     def forward(self,x,save_for_jacobian=False,**kwargs):
-        aout,bout = super(PolicyGauss,self).forward(x,save_for_jacobian=save_for_jacobian,**kwargs)
+        aout,bout = super(GaussianML,self).forward(x,save_for_jacobian=save_for_jacobian,**kwargs)
         return aout,bout
 
-class PolicyGauss3(PolicyExp2P):
+class GaussianMS(PolicyExp2P):
     def __init__(self,*args,**kwargs):
-        super(PolicyGauss, self).__init__(*args,**kwargs)
+        super(GaussianMS, self).__init__(*args,**kwargs)
 
     def forward(self,x,save_for_jacobian=False,**kwargs):
-        aout,bout = super(PolicyGauss,self).forward(x,save_for_jacobian=save_for_jacobian,**kwargs)
+        aout,bout = super(GaussianMS,self).forward(x,save_for_jacobian=save_for_jacobian,**kwargs)
         bout = F.softplus(bout,alpha=0.0,save_for_jacobian=save_for_jacobian)
         return aout,bout
