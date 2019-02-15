@@ -6,6 +6,17 @@ This repository contains a collection (or kit) of tools for Deep RL built with P
  - an autodifferentiation wrapper around PyTorch for vector valued functions
  - some additional RL environments
 
+## Contributors
+The following individuals have contributed either to the code or to the underlying ideas
+ - Carson Eisenach
+ - Haichuan Yang (contributions to the angular policy gradient implementation)
+ - Zhuoran Yang (contributions to the exponential family natural policy gradient)
+
+## Related Publications
+
+[1] Carson Eisenach, Haichuan Yang, Ji Liu, and Han Liu. "Marginal Policy Gradients: A Unified Family of Estimators for Bounded Action Spaces with Applications". *International Conference on Learning Representations (ICLR'19)*, New Orleans, USA, 2019.
+
+
 # Package Structure
 
 ## algorithm
