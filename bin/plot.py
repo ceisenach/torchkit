@@ -21,7 +21,7 @@ TIME_NAME = 'Number of Updates'
 CONDITION_NAME = 'Algorithm'
 
 # local
-carson_style = {
+plot_style = {
    'axes.titlesize' : 14,
    'axes.labelsize': 12,
    'font.size': 12,
@@ -122,14 +122,14 @@ def sns_plot(all_cr_files,name_list,title,plot_out,minimum=None,min_max_time=Non
 
 def tseries_plot(cr_files,plot_out):
     palette_iter = iter(sns.color_palette())
-    for crf in cr_files:        
+    for crf in cr_files:
         plot_all_files(cr_files,next(palette_iter),'-')
     plt.savefig(plot_out)
     plt.close()
 
 if __name__ == '__main__':
     # PLOTTING CONFIG
-    sns.set(context='paper',style="darkgrid",rc=carson_style)
+    sns.set(context='paper',style="darkgrid",rc=plot_style)
 
     # SETUP
     parser = plot_argparser()

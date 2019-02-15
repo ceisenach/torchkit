@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 from .core import JTensor, JParameter
 
-__all__ = ['tanh']
+__all__ = ['tanh','softplus','exp','expand']
 
 class Backend(Enum):
     PYTORCH = 1

@@ -39,6 +39,9 @@ For these implementations using running normalization (option --rstat) is very u
 ## autodiff
 Light wrapper around pytorch to implement auto-differentiation of vector valued functions. This allows for *significantly* improved efficiency in high dimensional action spaces because the  Hessian can be factored as the product of several lower rank matrices.
 
+### Implementation Notes
+As a backend to the autodifferentiation engine, we provide both a Pytorch and pure Numpy implementations. The reason a pure numpy implementation is required is that PyTorch v0.40 has a memory leak when running on the CPU that we were unable to track down (some buffers were not getting cleaned up). The authors have not confirmed whether or not this issue still exists in the most recent PyTorch release.
+
 
 ## bin
 THis module contains scripts to perform basic functionality essential to deep RL research. This includes:

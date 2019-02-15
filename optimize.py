@@ -1,6 +1,4 @@
 # Optimization Module
-#
-# (c) 2018 Carson Eisenach
 
 import torch
 import scipy.optimize
