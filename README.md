@@ -19,7 +19,7 @@ The following individuals have contributed either to the code or to the underlyi
 
 # Package Structure
 The Torchkit package is comprised of the following sub-packages:
- - [algorithm][#algorithm]
+ - [algorithm](#algorithm)
  - 
 
 ## Algorithms
