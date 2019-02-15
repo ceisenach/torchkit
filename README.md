@@ -15,7 +15,7 @@ The following individuals have contributed either to the code or to the underlyi
 ## Related Publications
 
 [1] Carson Eisenach, Haichuan Yang, Ji Liu, and Han Liu. "Marginal Policy Gradients: A Unified Family of Estimators for Bounded Action Spaces with Applications". *International Conference on Learning Representations (ICLR'19)*, New Orleans, USA, 2019.
-
+[2] Carson Eisenach and Zhuoran Yang. "Exponential Family Policy Gradient". Technical Report, Princeton University, Princeton, NJ, 2018.
 
 # Package Structure
 
@@ -23,9 +23,9 @@ The following individuals have contributed either to the code or to the underlyi
 ### A2C
 A synchronous version of A3C. Provided as a comparison for NACGauss and TRPO implementations
 
+
 ### Natural AC
 Natural actor-critic for exponential family. NACGauss is the Natural Actor Critic for the Gaussian family. So far, it supports Gaussian distributions with diagonal covariance structure.
-
 
 
 ### TRPO Implementation
@@ -76,6 +76,13 @@ python bin/plot.py -d res/exp_angular/ res/exp_gauss res/exp_gauss1D/ -n Angular
 ```
 To use plotting, all runs of the same experiment should be in the same directory
 
+## environment
+
+
+## policy
+
+
+## utils
 
 # Roadmap
 This torchkit is a work-in-progress. Some improvements on the roadmap include:
