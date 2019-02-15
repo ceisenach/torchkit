@@ -1,3 +1,8 @@
+# Sampler Module
+# Obtains batches of samples from a specific environment for training
+# (c) 2018 Carson Eisenach
+
+
 import gym
 import torch
 import logging
@@ -18,7 +23,7 @@ def _torch_from_float(val):
 class Sampler(object):
     """
     Samples batches using policy for an environment specified by kwargs
-    """ 
+    """
     def __init__(self,policy_obj,**kwargs):
         env = gym.make(kwargs['env'])
         env.seed(kwargs['seed'])
@@ -87,7 +92,7 @@ class Sampler(object):
             s_t_numpy = s_tp1_numpy
             self._t += 1
             num_steps += 1
-            
+
         self._s_t_numpy = s_t_numpy
         batch = self._experience_buffer.get_data()
         return batch,crs,trs,els

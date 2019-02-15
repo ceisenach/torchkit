@@ -22,7 +22,7 @@ class OrderedModule(nn.Module):
         if not ordered or not hasattr(self,'_param_order'):
             return super(OrderedModule,self).parameters(**kwargs)
         return itertools.chain(*[m.parameters() for m in self._param_order])
-        
+
 
 class FFNet_base(OrderedModule):
     def __init__(self,in_size,out_size=1,width=32,hidden_layers = 2,init_std=1.0,**kwargs):
