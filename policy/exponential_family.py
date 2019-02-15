@@ -24,7 +24,6 @@ class ExponentialFamily2P(BasePolicy):
     def __init__(self,acnet,**kwargs):
         super(ExponentialFamily2P,self).__init__(acnet,**kwargs)
 
-
     def fisher_information_params(self,param_1,param_2,backend='pytorch'):
         """
         Fisher information in terms of parameter values. Returns a batch of diagonals of each sub-matrix.
