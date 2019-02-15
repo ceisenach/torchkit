@@ -18,8 +18,11 @@ The following individuals have contributed either to the code or to the underlyi
 [2] Carson Eisenach and Zhuoran Yang. "Exponential Family Policy Gradient". Technical Report, Princeton University, Princeton, NJ, 2018.
 
 # Package Structure
+The Torchkit package is comprised of the following sub-packages:
+ - [algorithm][#algorithm]
+ - 
 
-## algorithm
+## Algorithms
 ### A2C
 A synchronous version of A3C. Provided as a comparison for NACGauss and TRPO implementations
 
@@ -45,8 +48,9 @@ As a backend to the autodifferentiation engine, we provide both a Pytorch and pu
 
 ## bin
 THis module contains scripts to perform basic functionality essential to deep RL research. This includes:
- - scripts to run batches of experiments
- - scripts to create pretty plots using seaborn.
+ - running batches of experiments (`run_experiment.py`)
+ - training a single model (`train.py`)
+ - scripts to create pretty plots using seaborn (`plot.py`).
 
 ### Examples
 Running training:

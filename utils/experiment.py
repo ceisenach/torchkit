@@ -18,7 +18,7 @@ def experiment_argparser():
     parser.add_argument('--lrc', default=1e-3, type=float, help='learning rate critic')
     parser.add_argument("-o", "--odir", type=str, default=None, help="output directory")
     parser.add_argument("-d", "--debug", action="store_true", help="debug")
-    parser.add_argument("-p",'--policy' ,type=str, default='Gaussian', help="policy type to use")
+    parser.add_argument("-p",'--policy' ,type=str, default='GaussianML', help="policy type to use")
     parser.add_argument("-u",'--num_updates', type=float, default=1e4, help="number of gradient updates")
     parser.add_argument("-g","--gamma", type=float, default=0.99, help="discount factor")
     parser.add_argument("-N", type=int, default=15000, help="Batch Size")
@@ -35,7 +35,7 @@ def experiment_argparser():
     parser.add_argument('-a','--alg',type=str, default='TRPO', metavar='G',help='algorithm to use')
     parser.add_argument('-b','--backend',type=str, default='numpy', metavar='G',help='backend to use for Jacobian')
     parser.add_argument("--nk",  type=str,default=None, help="kwargs for actor and critic nets")
-    parser.add_argument('--nt',type=str,nargs='+',default=['Policy','Value'], help="which network architecture to use")
+    parser.add_argument('--nt',type=str,nargs='+',default=['GaussianML','Value'], help="which network architecture to use")
     parser.add_argument("--run",  type=int,default=0, help="indicates what run number if running multiple of same experiment")
     parser.add_argument("--rstat", action="store_true", help="use running stats to normalize states (used in Schulman's TRPO)")
 
@@ -109,7 +109,7 @@ def run_training(train_config):
         json.dump(train_config, fp, sort_keys=True, indent=4)
 
     log_level = logging.DEBUG if train_config['debug'] else logging.INFO
-    if not train_config['console']:     
+    if not train_config['console']:
         logging.basicConfig(filename=os.path.join(train_config['odir'],'log_run_%d.log' % train_config['run']),
                 level=log_level,
                 format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',)
