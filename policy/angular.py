@@ -2,6 +2,7 @@
 import torch
 from torch.autograd import Variable
 from . import BasePolicy
+from .exponential_family import ExponentialFamily2P
 import math
 
 __all__ = ['AngularGaussML']
@@ -17,9 +18,8 @@ class AngularGaussML(BasePolicy):
     of a Gaussian model. The covariance is a diagonal matrix.
     """
 
-    def __init__(self,acnet,sigma = 0.2):
+    def __init__(self,acnet):
         super(AngularGaussML,self).__init__(acnet)
-        self._sigma = sigma
 
     # gets M_{d-1} and M_{d-2}
     def _m_function(self,d, alpha):
@@ -44,9 +44,10 @@ class AngularGaussML(BasePolicy):
         return m1,m0
 
     def sample(self,s_t,deterministic=False,**kwargs):
-        action_mean,_ = self._net(s_t)
+        action_mean,action_log_std = self._net(s_t)
+        action_std = torch.exp(action_log_std)
         if not deterministic:
-            action = torch.normal(action_mean, self._sigma)
+            action = torch.normal(action_mean, action_std)
             return action.detach()
         return action_mean.detach()
 

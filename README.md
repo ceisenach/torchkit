@@ -26,7 +26,7 @@ The TRPO implementations implementations are based on (or ported from)
  - [John Schulman's Original TRPO](https://github.com/joschu/modular_rl)
  - [Ilya Kostrikiov's PyTorch Implementation](https://github.com/ikostrikov/pytorch-trpo/)
 
-The Nav2D environment and AngularGaussian policy are adapted from https://github.com/ceisenach/MPG
+The Platform2D environment and AngularGaussian policy are adapted from https://github.com/ceisenach/MPG
 
 ## Notes
 Compatibility with Pytorch 1.0 confirmed.
@@ -87,9 +87,9 @@ python bin/train.py --co -N 100
 ```
 Flag '--co' indicates to log output to console instead of to file. Can be useful for debugging. Passing in seed of -1 means that no seed is used.
 
-For AC2
+For A2C
 ```
-python bin/train.py --e Platform2D-v1 --co -N 1000 -a A2C -p AngularGaussML --nt GaussianML2 Value
+python bin/train.py --e Platform2D-v1 --co -a A2C -p AngularGaussML --nt GaussianML2 Value --lra 0.001 -N 25 -u 1e5
 ```
 
 For TRPO
@@ -114,7 +114,7 @@ To use plotting, all runs of the same experiment should be in the same directory
 
 ## environment
 Some new tasks to test out RL algorithms:
- - Nav2D (from [1])
+ - Platform2D (from [1])
  - Optimial production problems (from [2])
 
 
