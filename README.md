@@ -27,6 +27,8 @@ The TRPO implementations implementations are based on (or ported from)
  - [Ilya Kostrikiov's PyTorch Implementation](https://github.com/ikostrikov/pytorch-trpo/)
 
 
+## Notes
+Compatibility with Pytorch 1.0 confirmed.
 
 # Package Structure
 The Torchkit package is comprised of the following sub-packages:
@@ -117,17 +119,18 @@ Optimization routines that include L-BFGS and the conjugate gradient method (use
 
 
 ## policy
-An implementation of several common distributions such as the Gaussian, Beta and Gamma distributions. For the multivariate Gaussian, several different parametrizations are provided.
+An implementation of several common distributions including: multivariate Gaussian, Beta and Gamma. For the multivariate Gaussian, several different parametrizations are provided.
 
-These policy objects can be used to sample from the distribution as well as compute quantities like the negative log-likelihood and KL divergence.
+Policy objects can be used to sample from the distribution as well as compute quantities like the negative log-likelihood and KL divergence.
 
 ## running_stat
-
+Can be used to normalize input to either the policy or value nets.
 
 ## sampler
 Generate samples from an environment given the current policy. It can also sample from multiple independent copies of the same env
 
 ## utils
+Various utility functions for running experiments.
 
 # Roadmap
 This torchkit is a work-in-progress. Some improvements on the roadmap include:
