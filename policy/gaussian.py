@@ -1,7 +1,6 @@
 # Imports
 import torch
 from torch.autograd import Variable
-from torch.distributions.beta import Beta as TBeta
 import math
 import numpy as np
 
@@ -61,7 +60,7 @@ class GaussianML(ExponentialFamily2P):
 
             if backend == 'pytorch':
                 pass
-            elif backend == 'numpy':        
+            elif backend == 'numpy':
                 I_11 = I_11.numpy()
                 I_22 = I_22.numpy()
             else:
@@ -118,7 +117,7 @@ class GaussianMS(ExponentialFamily2P):
 
             if backend == 'pytorch':
                 pass
-            elif backend == 'numpy':        
+            elif backend == 'numpy':
                 I_11 = I_11.numpy()
                 I_22 = I_22.numpy()
             else:

@@ -47,3 +47,4 @@ class BasePolicy(object):
 from .gaussian import *
 from .beta import *
 from .gamma import *
+from .angular import *

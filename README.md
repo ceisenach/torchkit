@@ -36,6 +36,7 @@ The Torchkit package is comprised of the following sub-packages:
  - [autodiff](#autodiff)
  - [bin](#bin)
  - [environment](#environment)
+ - [experiments](#experiments)
  - [model](#model)
  - [optimize](#optimize)
  - [policy](#policy)
@@ -107,6 +108,12 @@ To use plotting, all runs of the same experiment should be in the same directory
 Some new tasks to test out RL algorithms:
  - Nav2D (from [1])
  - Optimial production problems (from [2])
+
+
+## experiments
+While not a python package, we describe the experiment runner mechanism in detail.  The experiment runner script, `bin/run_experiment.py`, is used to run batch experiments using a fixed set of seeds (for reproducibility).
+
+In this directory, there are several `.json` files containing *experiment descriptions* along with a set of random seeds (`seeds.txt`). The results of these experiments can be found in [2].
 
 
 ## model
