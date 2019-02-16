@@ -89,7 +89,7 @@ Flag '--co' indicates to log output to console instead of to file. Can be useful
 
 For A2C
 ```
-python bin/train.py --e Platform2D-v1 --co -a A2C -p AngularGaussML --nt GaussianML2 Value --lra 0.001 -N 25 -u 1e5
+python bin/train.py --e Platform2D-v1 --co -a A2C -p AngularGaussML --nt GaussianML Value --lra 0.001 -N 25 -u 1e5
 ```
 
 For TRPO
@@ -98,9 +98,9 @@ For TRPO
 ```
 For NAC
 ```
- python bin/train.py --e Platform2D-v1 --co -N 32 -a NACGauss
- python bin/train.py --e Platform2D-v1 --co -N 128 -a NACGauss --lrc 0.01 --lra 0.1
- python bin/train.py --e InvertedPendulum-v2 -V 1 -N 512 -a NACGauss --lrc 0.001 --lra 0.001 -u 10000 --co
+ python bin/train.py --e Platform2D-v1 --co -N 32 -a NAC
+ python bin/train.py --e Platform2D-v1 --co -N 128 -a NAC --lrc 0.01 --lra 0.1
+ python bin/train.py --e InvertedPendulum-v2 -V 1 -N 512 -a NAC --lrc 0.001 --lra 0.001 -u 10000 --co
 ```
 To use Beta policy instead of Gaussian, add the flags
 ```
