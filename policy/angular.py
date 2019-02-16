@@ -14,7 +14,7 @@ class AngularGaussian(BasePolicy):
     Angular Gaussian Policy -- negative log-likelihood is with respect to the angular Gaussian density.
     """
 
-    def __init__(self,acnet,sigma):
+    def __init__(self,acnet,sigma = 0.2):
         super(AngularGaussian,self).__init__(acnet)
         self._sigma = sigma
 
@@ -41,20 +41,15 @@ class AngularGaussian(BasePolicy):
         return m1,m0
 
     def sample(self,s_t,deterministic=False,**kwargs):
-        if not isinstance(s_t,Variable):
-            s_t = Variable(s_t)
-        if sample:
-            self._net.eval()
-        action_mean = self._net(s_t)
-        if sample:
-            noise = torch.FloatTensor(action_mean.size()).normal_(0, self._sigma)
-            action = action_mean.data + noise
-            return action
-        return action_mean
+        action_mean,_ = self._net(s_t)
+        if not deterministic:
+            action = torch.normal(action_mean, self._sigma)
+            return action.detach()
+        return action_mean.detach()
 
 
     def log_likelihood(self,a_t_hat,s_t):
-        a_t = self._net(s_t)
+        a_t,_ = self._net(s_t)
 
         a_t_hat = a_t_hat.unsqueeze(0) if len(a_t_hat.size()) == 1 else a_t_hat
         a_t = a_t.unsqueeze(0) if len(a_t.size()) == 1 else a_t
@@ -65,6 +60,7 @@ class AngularGaussian(BasePolicy):
         xTx = torch.sum(a_t_hat ** 2, dim=1)
         muTmu = torch.sum(a_t ** 2, dim=1)
         xTx_sqrt = torch.sqrt(xTx)
+        import pdb; pdb.set_trace()
         alpha = (1./self._sigma) * (1./xTx_sqrt) * xTmu
         alpha_sq = alpha ** 2
 
