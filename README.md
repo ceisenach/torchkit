@@ -130,6 +130,8 @@ An implementation of several common distributions including: multivariate Gaussi
 
 Policy objects can be used to sample from the distribution as well as compute quantities like the negative log-likelihood and KL divergence.
 
+To add new types of policies, simply implement the interface provided by `BasePolicy`.
+
 ## running_stat
 Can be used to normalize input to either the policy or value nets.
 
