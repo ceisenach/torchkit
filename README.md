@@ -26,6 +26,7 @@ The TRPO implementations implementations are based on (or ported from)
  - [John Schulman's Original TRPO](https://github.com/joschu/modular_rl)
  - [Ilya Kostrikiov's PyTorch Implementation](https://github.com/ikostrikov/pytorch-trpo/)
 
+The Nav2D environment and AngularGaussian policy are adapted from https://github.com/ceisenach/MPG
 
 ## Notes
 Compatibility with Pytorch 1.0 confirmed.
@@ -76,6 +77,8 @@ This module contains scripts to perform basic functionality essential to deep RL
  - training a single model (`train.py`)
  - scripts to create pretty plots using seaborn (`plot.py`).
 
+In general, you can pass the argument `-h` to view the help. The default training parameters are tailored to TRPO, override them from the command line if you are using a different algorithm.
+
 ### Examples
 Running training:
 ```
@@ -83,6 +86,11 @@ python bin/train.py --co -N 100
  python bin/train.py -V 1 -N 10 --nk "{'hidden_layers' :  2}" --lr 0.01  -u 1e4  -co
 ```
 Flag '--co' indicates to log output to console instead of to file. Can be useful for debugging. Passing in seed of -1 means that no seed is used.
+
+For AC2
+```
+python bin/train.py --e Platform2D-v1 --co -N 1000 -a A2C -p AngularGaussML --nt GaussianML2 Value
+```
 
 For TRPO
 ```

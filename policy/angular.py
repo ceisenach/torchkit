@@ -4,18 +4,21 @@ from torch.autograd import Variable
 from . import BasePolicy
 import math
 
-__all__ = ['AngularGaussian']
+__all__ = ['AngularGaussML']
 
 EPS = 10**(-6)
 
 
-class AngularGaussian(BasePolicy):
+class AngularGaussML(BasePolicy):
     """
     Angular Gaussian Policy -- negative log-likelihood is with respect to the angular Gaussian density.
+
+    Assumes that the network models the mean and the log standard deviation
+    of a Gaussian model. The covariance is a diagonal matrix.
     """
 
     def __init__(self,acnet,sigma = 0.2):
-        super(AngularGaussian,self).__init__(acnet)
+        super(AngularGaussML,self).__init__(acnet)
         self._sigma = sigma
 
     # gets M_{d-1} and M_{d-2}
@@ -49,26 +52,28 @@ class AngularGaussian(BasePolicy):
 
 
     def log_likelihood(self,a_t_hat,s_t):
-        a_t,_ = self._net(s_t)
+        a_t,log_std_t = self._net(s_t)
 
         a_t_hat = a_t_hat.unsqueeze(0) if len(a_t_hat.size()) == 1 else a_t_hat
         a_t = a_t.unsqueeze(0) if len(a_t.size()) == 1 else a_t
+        log_std_t = log_std_t.unsqueeze(0) if len(log_std_t.size()) == 1 else log_std_t
+        std_t = torch.exp(log_std_t)
+        var_t = std_t ** 2
 
         # basic expressions in angular gaussian log prob
         d = a_t_hat.size()[1]
-        xTmu = torch.sum(a_t_hat * a_t + EPS, dim=1)
-        xTx = torch.sum(a_t_hat ** 2, dim=1)
-        muTmu = torch.sum(a_t ** 2, dim=1)
-        xTx_sqrt = torch.sqrt(xTx)
-        import pdb; pdb.set_trace()
-        alpha = (1./self._sigma) * (1./xTx_sqrt) * xTmu
+        xTSmu = torch.sum(a_t_hat * a_t / var_t + EPS, dim=1)
+        xTSx = torch.sum(a_t_hat ** 2 / var_t, dim=1)
+        muTSmu = torch.sum(a_t ** 2 / var_t, dim=1)
+        xTSx_sqrt = torch.sqrt(xTSx)
+        alpha = (1./xTSx_sqrt) * xTSmu
         alpha_sq = alpha ** 2
 
         # \cM_{d-1}(\alpha)
         m_dm1, m_dm2 = self._m_function(d, alpha)
 
         # higher level expressions
-        term_3 = 0.5 * (alpha_sq - (muTmu / (self._sigma**2)))
+        term_3 = 0.5 * (alpha_sq - muTSmu)
         term_4 = (d * m_dm2 / m_dm1) * alpha
         log_prob = term_3 + term_4
 
