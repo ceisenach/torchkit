@@ -1,9 +1,11 @@
 # Torchkit
 
 This repository contains a collection (or kit) of tools for Deep RL built with PyTorch. They include
+
+ - an autodifferentiation wrapper around PyTorch for vector valued functions
+ - efficient implementations of TRPO and natural policy gradient for high dimensional action spaces
  - running batches of RL experiments
  - creating pretty plots using seaborn
- - an autodifferentiation wrapper around PyTorch for vector valued functions
  - some additional RL environments
 
 ## Related Publications
